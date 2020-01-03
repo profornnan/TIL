@@ -1107,7 +1107,26 @@ manager : worker들이 가지고 있는 내용을 관리, 제어하는 역할
 
 
 * Manager에 Swarm 설정
-  * Manager container에 dockcer
+  
+  * Manager container에 dockcer swarm init 설정 -> Swarm 모드 활성화
+  * Worker 컨테이너를 등록 with join token
+  
+  ```bash
+  $ docker exec -it manager docker swarm init
+  ```
+  
+  ```bash
+  $ docker exec -it work01 docker swarm join\
+  --token [JOIN TOKEN ex) SWMTKN-1-4u47j~bo0] manager:2377
+  ```
+  
+  -> worker02, worker03 도 등록
+  
+* Swarm에서 사용할 포트
+
+  * TCP port 2377 : cluster management 통신에 사용
+  * TCP/UDP port 7946 : node간의 통신에 사용
+  * TCP/UDP port 4789 : overlay network 트래픽에 사용
 
 
 
