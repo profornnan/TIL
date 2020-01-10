@@ -1576,12 +1576,6 @@ Controller node
 
 
 
-systemctl restart network
-
-이 명령어를 이용하면 재부팅 하지 않고 작업할 수 있다.
-
-
-
 ![image-20200109174043064](images/image-20200109174043064.png)
 
 
@@ -1622,9 +1616,11 @@ manual-controller
 
 
 
-vi /etc/sysconfig/network-scripts/ifcfg-ens33
+```bash
+$ vi /etc/sysconfig/network-scripts/ifcfg-ens33
+```
 
-100으로 되어있는 것을 11번으로 변경한다.
+
 
 ![image-20200109175020296](images/image-20200109175020296.png)
 
@@ -1632,10 +1628,12 @@ VVID 주석
 
 IPADDR="10.0.0.11"
 
+100으로 되어있는 것을 11번으로 변경한다.
+
 
 
 ```bash
-$ systemctl restart network
+$ systemctl restart network # 이 명령어를 이용하면 재부팅 하지 않고 작업할 수 있다.
 $ ip a
 ```
 
