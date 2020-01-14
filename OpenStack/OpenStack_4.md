@@ -1814,6 +1814,8 @@ Ctrl + ] 로 접속 해제 할 수 있다.
 
 ---
 
+### compute1 추가하기
+
 
 
 https://docs.openstack.org/nova/rocky/install/compute-install-rdo.html

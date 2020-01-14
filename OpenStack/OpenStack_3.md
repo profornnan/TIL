@@ -898,6 +898,12 @@ Volume Snapshot과 VM Snapshot은 storage가 다르다.
 
 ![image-20200109143324235](images/image-20200109143324235.png)
 
+class_instance 작업 -> 인스턴스 전원 끔
+
+Running 상태에서 작업할 경우 문제가 생길 수 있으므로 Shutoff 상태에서 작업을 한다.
+
+
+
 스냅샷 생성
 
 
