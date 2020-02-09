@@ -41,7 +41,7 @@
 
 
 
-##### 2 작업 디렉터리 생성
+##### 2 작업 디렉터리 생성 및 이동
 
 ```bash
 C:\Users\HPE>mkdir C:\react
@@ -57,7 +57,7 @@ C:\react>
 
 
 
-##### 4 File > Open Folder … > C:\react 를 선택
+##### 4 File > Open Folder … > C:\react 를 선택 후 Open
 
 
 
@@ -206,6 +206,8 @@ https://unpkg.com/react-dom@16.12.0/umd/react-dom.production.min.js
 문제를 쉽게 찾을 수 있도록 해준다.
 
 
+
+`development` : 개발 환경에서 사용하는 파일 → 에러 메시지 확인이 가능
 
 `production` : 실행(배포) 환경에서 사용하는 파일
 
