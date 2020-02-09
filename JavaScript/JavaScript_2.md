@@ -504,6 +504,35 @@ oninput="x.value=parseInt(a.value)+parseInt(b.value)">
 
 
 
+FROM 태그 하위 요소
+
+```html
+<form action="서버페이지주소">
+    <br/>이름: <input type="text" name="name" />
+    <br/>나이: <input type="number" name="age" />
+    <br/>결혼 여부:
+        <input type="radio" name="married" value="Y" checked> 기혼
+        <input type="radio" name="married" value="N"> 미혼
+    <br/>거주지:
+        <select name="city">
+            <option value="seoul">서울</option>
+            <option value="busan">부산</option>
+            <option value="incheon" selected>인천</option>
+    </select>
+    <br/>좋아하는 색깔:
+        <input type="checkbox" name="favColor" value="red" checked> 빨강
+        <input type="checkbox" name="favColor" value="blue" checked> 파랑
+        <input type="checkbox" name="favColor" value="yellow"> 노랑
+    <br/><input type="submit" value="제출"/>
+</form>
+```
+
+
+
+![image-20200208225956880](images/image-20200208225956880.png)
+
+
+
 ---
 
 ### JavaScript
@@ -546,13 +575,15 @@ confirm : 사용자에게 물어보는 것
 
 confirm은 잘 사용하지 않는다. toast 사용
 
+실제 서비스에서는 toast와 같은 라이브러리를 활용
+
 Toast.js
 
 https://www.w3schools.com/bootstrap4/bootstrap_toast.asp
 
 
 
-* 문자열과 숫자를 더하는 
+* 문자열과 숫자를 더하는 경우
 
 
 
@@ -640,7 +671,7 @@ NaN : Not a Number. 자료형은 숫자이나 자바스크립트로 나타낼 �
   * 0, NaN, '', null, undefined -> false로 변환
   * 나머지 -> true로 변환
 
-
+p64
 
 ```javascript
 > Boolean(0)
@@ -682,11 +713,15 @@ NaN : Not a Number. 자료형은 숫자이나 자바스크립트로 나타낼 �
 < false
 > !!undefined
 < false
+> !!1
+< true
+> !!' '
+< true
 ```
 
 
 
-자동 형변환(= 암시적 형변환)의 문제점
+자동 형변환(= 암시적 형변환)의 문제점 → 혼돈을 야기
 
 ```javascript
 console.log('' == false);
@@ -726,7 +761,7 @@ console.log('273' === 273);
 const a = "철수";
 const b = "사과";
 console.log('"' + a + '"는 "' + b + '"를 좋아해');
-console.log(`"${a}"는 "${b}"를 좋아해 ... ${a+b} ... `); 
+console.log(`"${a}"는 "${b}"를 좋아해 ... ${a+b} ... `);
 ```
 
 탬플릿 문자열은 백틱 기호로 감싸 만들며, 문자열 내부에 ${} 기호를 사용하고 내부에 표현식을 넣으면 일반 수식과 똑같이 동작
@@ -929,6 +964,22 @@ var는 재정의 해도 문제가 발생하지 않는다.
 
 
 
+```javascript
+<script>
+    console.log("#1", name);
+    var name;
+    console.log("#2", name);
+    name = "x";
+    console.log("#3", name);
+</script>
+```
+
+
+
+![image-20200208233833252](images/image-20200208233833252.png)
+
+
+
 결론 : let을 사용해라
 
 
@@ -990,7 +1041,7 @@ typeof()는 연산자에 속한다. 괄호를 열고 사용할 수도 있어서 
 <script>
 	const date = new Date();
     const hour = date.getHours();
-    const week = date.getDay();
+    const week = date.getDay(); // 요일을 숫자로 반환
     console.log(week);
 
     console.log('현재는 ' + hour + '시 입니다.');
@@ -1026,7 +1077,7 @@ week는 요일을 숫자로 반환한다. 숫자 4가 나온다. 오늘은 목�
 <script>
 	const date = new Date();
     const hour = date.getHours();
-    const week = date.getDay();
+    const week = date.getDay(); // 요일을 숫자로 반환
 
     console.log('현재는 ' + hour + '시 입니다.');
     console.log(`현재는 ${hour}시 입니다.`);
@@ -1070,6 +1121,8 @@ week는 요일을 숫자로 반환한다. 숫자 4가 나온다. 오늘은 목�
             break;
         case 5: console.log('금요일입니다.');
             break;
+        case 6: console.log('토요일입니다.');
+            break;
         default: console.log('잘못된 요일입니다.');
     }
 </script>
@@ -1079,19 +1132,20 @@ week는 요일을 숫자로 반환한다. 숫자 4가 나온다. 오늘은 목�
 
 **삼항연산자**
 
-
+p89
 
 ```javascript
 <script>
 	// 사용자로부터 숫자를 입력받습니다.
     // 숫자가 아닌 경우 콘솔에 오류 메시지를 출력하고,
     // 숫자인 경우 짝수, 홀수 여부를 판정해서 콘솔에 메시지를 출력
-
+    //  https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/isNaN
     let num = prompt("숫자를 입력하세요.");
     num = Number(num);
     if (isNaN(num)) {
         console.log("숫자가 아닙니다.");
     } else {
+        //  if - else 구문을 이용해서 구현
         if (num % 2 === 0) {
             console.log("짝수입니다.");
         } else {
@@ -1120,19 +1174,20 @@ isNaN() 함수 : 들어가있는 변수가 NaN인지 확인해준다. 비교연�
     num = Number(num);
     if (isNaN(num)) {
         console.log("숫자가 아닙니다.");
+    } else {
+        // 삼항 연산자를 이용해서 구현
+        // 조건식 ? 참인경우 : 거짓인경우;
+        num % 2 === 0 ? console.log("짝수입니다.") : console.log("홀수입니다.");
     }
-    // 삼항 연산자를 이용해서 구현
-    // 조건식 ? 참인경우 : 거짓인경우;
-    num % 2 === 0 ? console.log("짝수입니다.") : console.log("홀수입니다.");
 </script>
 ```
 
 
 
-* p89 짧은 조건식(short-circuit)
-  * A || B  <=  A 또는 B, 둘 중 하나가 참이면 참 = A와 B, 둘 모두 거짓이여야 거짓
-    * B라는 기능이 A가 거짓일 경우에만 실행하도록 할 수 있다.
-  * A&&B  <= A와 B, 둘 모두 참이여야 참 = A 또는 B 둘 중 하나가 거짓이면 거짓
+p89 짧은 조건식(short-circuit)
+* A || B  <=  A 또는 B, 둘 중 하나가 참이면 참 = A와 B, 둘 모두 거짓이여야 거짓
+  * B라는 기능이 A가 거짓일 경우에만 실행하도록 할 수 있다.
+* A&&B  <= A와 B, 둘 모두 참이여야 참 = A 또는 B 둘 중 하나가 거짓이면 거짓
 
 
 
@@ -1231,8 +1286,6 @@ for([1]변수=초기값; [2][5]조건문; [4][7]증가분) {
 
 
 
-
-
 ```javascript
 arr.forEach(ii => console.log(ii));
 ```
@@ -1266,13 +1319,9 @@ forEach와 같은 iterator 형식을 많이 사용. 방을 순차적으로 돈�
     });
 
     console.log("방법4");
-    arr.forEach(ii => console.log(ii));
+    arr.forEach(item => console.log(item));
 </script>
 ```
-
-
-
-![image-20200123161243502](images/image-20200123161243502.png)
 
 
 
@@ -1285,9 +1334,17 @@ forEach와 같은 iterator 형식을 많이 사용. 방을 순차적으로 돈�
 
     // 배열 항목 추가
     arr.push("xyz");
-    console.log("push()이후 배열의 길이", arr.length);
+    console.log("push() 이후 배열의 길이", arr.length);
 </script>
 ```
+
+
+
+![image-20200209002308870](images/image-20200209002308870.png)
+
+
+
+![image-20200123161243502](images/image-20200123161243502.png)
 
 
 

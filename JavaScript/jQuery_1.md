@@ -84,6 +84,10 @@ found 0 vulnerabilities
 
 
 
+#### $(document).ready()
+
+p415
+
 ```javascript
 <html>
     <head>
@@ -149,7 +153,7 @@ window.jQuery = window.$ = jQuery;
 
 selector(선택자) : 액션을 수행하려 할 때 그 위치를 찾는 것. DOM에서 특정 위치를 지정(선택)하기 위한 것
 
-CSS의 selector와 거의 유사하다.
+CSS 선택자 대부분을 지원 (CSS의 selector와 거의 유사하다.)
 
 
 
@@ -207,6 +211,7 @@ block 요소 : 특별하게 지정하지 않으면 이 내용이 화면 전체�
         <script src="/node_modules/jquery/dist/jquery.js"></script>
         <script>
             $(function() {
+            	// 전체 선택자
                 $("*").css('color', 'red');
             });
         </script>
@@ -249,6 +254,7 @@ block 요소 : 특별하게 지정하지 않으면 이 내용이 화면 전체�
         <script>
             $(function() {
             	// 후손 선택자
+            	// body 태그 아래의 모든 태그
                 $("body *").css('color', 'red');
             });
         </script>
@@ -449,7 +455,7 @@ https://api.jquery.com/category/selectors/
                 $("div *").css('color', 'blue');  // div 아래에 있는 모든 것을 가져온다.
                 $("div ul").css('background', 'yellow');
                 $("div > ul").css('border', '1px solid red');
-            })
+            });
         </script>
     </head>
     <body>

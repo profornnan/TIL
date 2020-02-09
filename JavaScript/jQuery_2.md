@@ -94,7 +94,7 @@ http://naver.com/abc/xyz/do.jsp?lastName=T&firstname=SG...
 
   ```html
   <form action="#" method="get"></form>	-> get방식
-  <form action="#" method="get"></form>	-> post방식
+  <form action="#" method="post"></form>	-> post방식
   ```
 
   
@@ -163,7 +163,7 @@ p426
                 E[A!=V] 속성값이 다른 문서 객체 선택
                 E[A~=V] 속성값에 단어가 포함된 객체를 선택    
                 E[A^=V] 속성값이 글자로 시작하는 객체를 선택
-                E[A$=V] 속성값이 글자로 끝나느느 객체를 선택
+                E[A$=V] 속성값이 글자로 끝나는 객체를 선택
                 E[A*=V] 속성값에 글자를 포함한 객체를 선택
             */
 
@@ -225,7 +225,7 @@ p426
 
 
 
-#### CSS 이용
+#### CSS 셀렉터
 
 ```javascript
 <!DOCTYPE html>
@@ -458,7 +458,8 @@ margin 뒤에 있는 값의 개수에 따라 적용되는 방식이 다르다. �
 
 
 
-## 이벤트
+#### 셀렉터한 요소들을 순차적으로 처리 및 선택(클릭)한 요소의 값과 속성 출력
+이벤트
 
 p502
 
@@ -645,9 +646,9 @@ p502
 
 
 
-#### 실습 1
+#### 실습 1) 동일한 속성값을 가진 엘리먼트를 토글링
 
-div 박스를 클릭하면 동일한 value가 있으면 다른 class의 박스를 숨김(hide), 없으면 다른 class의 박스를 보임(show)
+div 박스를 클릭시 동일한 value가 있으면 다른 class의 박스를 숨김(hide), 없으면 다른 class의 박스를 보임(show)
 
 ```javascript
 <!DOCTYPE html>
@@ -710,7 +711,7 @@ div 박스를 클릭하면 동일한 value가 있으면 다른 class의 박스�
 
 ![image-20200130132344605](images/image-20200130132344605.png)
 
-#### 실습2
+#### 실습2) 셀렉트 박스에서 선택한 숫자에 해당하는 구구단을 출력
 
 숫자를 선택하면 해당하는 숫자의 구구단 출력
 
@@ -1074,6 +1075,7 @@ Development -> Tabs -> view source
             $('input[name="userid"]').focusout(function() {
                 if ($(this).val() == "") {
                     //alert("아이디를 입력하세요.");
+                    $("#dialog p").text("아이디를 입력하지 않았습니다.");
                     $("#dialog").dialog();
                 }
             })
@@ -1104,7 +1106,7 @@ Development -> Tabs -> view source
     <input type="text" name="userid" />
 
     <div id="dialog" title="알림">
-        <p>아이디를 입력하지 않았습니다.</p>
+        <p></p>
     </div>
 </body>
 </html>
@@ -1330,9 +1332,15 @@ found 0 vulnerabilities
 
     
 
-#### 브라우저에서 요청
+#### ajax 통신을 통해 가져온 데이터를 화면에 출력
+
+##### 브라우저에서 요청
 
 C:\javascript 폴더에 students.json 파일 생성 (visual studio code에서 new file)
+
+
+
+students.json
 
 ```json
 {
@@ -1357,7 +1365,7 @@ http://localhost:8080/students.json
 
 
 
-#### javascript로 요청
+##### javascript로 요청
 
 https://api.jquery.com/jQuery.ajax/
 

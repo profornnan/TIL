@@ -8,10 +8,33 @@ p162
 
 호출할 때에는 앞에서부터 채워가기 때문에 기본값을 정의할 때에는 뒤에서부터 채워야 한다.
 
+
+
+```javascript
+// 함수 선언문 형식
+        function sum (a, b = 0, c = 0) {
+            return a + b + c;
+        }
+
+// 익명 함수 표현식 형식
+        let sum = function (a, b = 0, c = 0) {
+            return a + b + c;
+        };
+
+// 화살표 함수 형식
+        let sum = (a, b = 0, c = 0) => {
+            return a + b + c;
+        };
+
+```
+
+
+
 ```javascript
 <html>
     <head>
         <script>
+    		// 함수 선언문 형식
             function add (a, b = 0, c = 0) {
                 return a + b + c;
             }
@@ -38,6 +61,7 @@ p162
 <html>
     <head>
         <script>
+    		// 익명 함수 표현식 형식
             let sum = function (a, b = 0, c = 0) {
                 return a + b + c;
             };
@@ -50,14 +74,13 @@ p162
 </html>
 ```
 
-익명 함수 표현식
-
 
 
 ```javascript
 <html>
     <head>
         <script>
+    		// 화살표 함수 형식
             let sum = (a, b = 0, c = 0) => {
                 return a + b + c;
             };
@@ -69,8 +92,6 @@ p162
     <body></body>
 </html>
 ```
-
-화살표 함수
 
 
 
@@ -343,6 +364,8 @@ p171
 
 #### 객체와 반복문
 
+p176
+
 * for in 과 같은 구문을 이용해 객체 내부의 요소들에 접근 가능하다.
 
 * for문과 같이 index를 이용해 접근하는 것은 불가능
@@ -534,7 +557,9 @@ p182
 
 
 
-#### 객체와 배열을 사용한 데이터 관리
+#### 객체와 배열을 이용한 데이터 관리
+
+p185
 
 ```
 let students = [];
@@ -581,22 +606,22 @@ students.push({ name: 'jjj', korean: 24, math: 42, english: 71, science: 88 });
             students.push({ name: 'jjj', korean: 24, math: 42, english: 71, science: 88 });
 
             // 학생별 총점, 평균점을 구하는 메소드를 추가
-            students.forEach(students => {
-                console.log(typeof students);
-                console.log(students);
+            students.forEach(student => {
+                console.log(typeof student);
+                console.log(student);
                 // 총점을 구하는 메소드를 추가
-                students.getSum = function() {
+                student.getSum = function() {
                     return this.korean + this.math + this.english + this.science;
                 };
                 // 평균점을 구하는 메소드를 추가
-                students.getAverage = function() {
+                student.getAverage = function() {
                     this.getSum() / 4;
                 };
             });
             // 학생별 총점, 평균점을 출력
-            students.forEach(students => {
+            students.forEach(student => {
                 //console.log(`이름 : ${student.name}, 총점 : ${student.getSum()}, 평균 : ${student.getAverage()}`);
-                with(students){
+                with(student){
                     console.log(`이름 : ${name}, 총점 : ${getSum()}, 평균 : ${getAverage()}`);
                 }
             });
@@ -647,6 +672,7 @@ p189
             students.push(makeStudent('hhh', 22, 25, 41, 56));
             students.push(makeStudent('iii', 87, 79, 25, 86));
             students.push(makeStudent('jjj', 24, 42, 71, 88));
+
             students.forEach(student => {
                 with(student) {
                     console.log(`이름 : ${name}, 총점 : ${getSum()}, 평균 : ${getAverage()}\n`);
@@ -798,64 +824,66 @@ p198
 
 ```javascript
 <html>
-    <head>
-        <script>
-            let oldValue = 10;
-            let newValue = oldValue;
-            console.log(oldValue, newValue);  // 10, 10
+<head>
+    <script>
+        let oldValue = 10;
+        let newValue = oldValue;
+        console.log(oldValue, newValue);    //  10, 10
 
-            oldValue = 100;
-            console.log(oldValue, newValue);  // 100, 10
+        oldValue = 100;
+        console.log(oldValue, newValue);    //  100, 10
 
-            let oldArray = [ 10, 20 ];
-            let newArray = oldArray;
-            console.log(oldArray, newArray);  // [10, 20] [10, 20]
+        let oldArray = [ 10, 20 ];
+        let newArray = oldArray;
+        console.log(oldArray, newArray);    //  [10, 20] [10, 20]
 
-            oldArray[0] = 100;
-            newArray[1] = 999;
-            console.log(oldArray, newArray);  // [100, 999] [100, 999]
+        oldArray[0] = 100;
+        newArray[1] = 999;
+        console.log(oldArray, newArray);    //  [100, 999] [ 100, 999 ]
 
-            let oldObject = { name: 'aaa', age: 50 };
-            let newObject = oldObject;
-            console.log(oldObject, newObject);
+        let oldObject = { name: 'aaa', age: 50 };
+        let newObject = oldObject;          //	주소를 공유
+        console.log(oldObject, newObject);  // 	{name: 'aaa', age: 50} {name: 'aaa', age: 50} 
 
-            oldObject.name = 'bbb';
-            newObject.age = 30;
-            console.log(oldObject, newObject);
+        oldObject.name = 'bbb';         
+        newObject.age = 30;
+        console.log(oldObject, newObject);  // 	{name: 'bbb', age: 30} {name: 'bbb', age: 30}
 
-            function cloneObject(obj) {
-                let output = {};
-                for (let key in obj) {
-                    output[key] = obj[key];
-                }
-                return output;
+        // 	매개변수로 전달된 obj와 동일한 구조와 값을 가지는 객체를 만들어서 반환하는 함수
+        function cloneObject(obj) {
+            let output = {};
+            for (let key in obj) {
+                output[key] = obj[key];
             }
-            let oldObject2 = { name: 'xyz', age: 123 };
-            let newObject2 = cloneObject(oldObject2);
-            //let newObject3 = JSON.parse(JSON.stringify(oldObject2));
-            console.log(oldObject2, newObject2);
+            return output;
+        }
+        let oldObject2 = { name: 'xyz', age: 123 };
+        let newObject2 = cloneObject(oldObject2);
+        //let newObject3 = JSON.parse(JSON.stringify(oldObject2));
+        console.log(oldObject2, newObject2); // {name: 'xyz', age: 123} {name: 'xyz', age: 123}
 
-            oldObject2.name = 'zzz';
-            newObject2.age = 999;
-            console.log(oldObject2, newObject2);
+        oldObject2.name = 'zzz';
+        newObject2.age = 999;
+        console.log(oldObject2, newObject2); // {name: 'zzz', age: 123} {name: 'xyz', age: 999}
 
-            function cloneArray(arr) {
-                let output = [];
-                for (let i of arr){
-                    output.push(i);
-                }
-                return output;
+	    // 매개변수로 전달된 arr와 동일한 크기와 값을 가지는 배열을 만들어서 반환하는 함수
+        function cloneArray(arr) {
+            let output = [];
+            for (let i of arr) {
+                output.push(i);
             }
-            let oldArray2 = [ 10, 20 ];
-            let newArray2 = cloneArray(oldArray2);
-            console.log(oldArray2, newArray2);
+            return output;             
+        }
+        let oldArray2 = [ 10, 20 ];
+        let newArray2 = cloneArray(oldArray2); 
+        console.log(oldArray2, newArray2);  // [ 10, 20 ]  [ 10, 20 ]
 
-            oldArray2[0] = 100;
-            newArray2[1] = 200;
-            console.log(oldArray2, newArray2);
-        </script>
-    </head>
-    <body></body>
+        oldArray2[0] = 100;
+        newArray2[1] = 200;
+        console.log(oldArray2, newArray2);  // [ 100, 20 ] [ 10, 200 ]
+    </script>
+</head>
+<body></body>
 </html>
 ```
 
@@ -867,26 +895,24 @@ p198
 
 #### 전개 연산자를 이용한 배열 테크닉
 
-```javascript
-<html>
-    <head>
-        <script>
-            let oldArray = [ 1, 2, 3, 4 ];
-            let newArray = [...oldArray];
-            console.log(oldArray, newArray);  // [ 1, 2, 3, 4] [1, 2, 3, 4]
+p200
 
-            oldArray[0] = 100;
-            newArray[1] = 200;
-            console.log(oldArray, newArray);  // [ 100, 2, 3, 4 ] [ 1, 200, 3, 4 ]
-        </script>
-    </head>
-    <body></body>
-</html>
+```javascript
+<script>
+    // 전개 연산자를 이용한 배열의 깊은 복사
+    let oldArray = [ 1, 2, 3, 4 ];
+    let newArray = [...oldArray];
+    console.log(oldArray, newArray);    //  [ 1, 2, 3, 4 ] [ 1, 2, 3, 4 ]
+
+    oldArray[0] = 100;
+    newArray[1] = 200;
+    console.log(oldArray, newArray);    //  [ 100, 2, 3, 4 ] [ 1, 200, 3, 4 ]
+</script>
 ```
 
 
 
-![image-20200129143940648](images/image-20200129143940648.png)
+![image-20200209181352580](images/image-20200209181352580.png)
 
 
 
@@ -895,18 +921,13 @@ p198
 
 
 ```javascript
-<html>
-    <head>
-        <script>
-            // 전개 연산자를 이용한 배열 합병
-            let arrayA = [ 1, 2, 3 ];
-            let arrayB = [ 'a', 'b', 'c' ];
-            let newArray = [ ...arrayA, ...arrayB ];
-            console.log(newArray);  // [1, 2, 3, "a", "b", "c"]
-        </script>
-    </head>
-    <body></body>
-</html>
+<script>
+    // 전개 연산자를 이용한 배열 합병
+    let arrayA = [ 1, 2, 3 ];
+    let arrayB = [ 'a', 'b', 'c' ];
+    let newArray = [ ...arrayA, ...arrayB ];
+    console.log(newArray);  // [1, 2, 3, "a", "b", "c"]
+</script>
 ```
 
 
@@ -916,21 +937,16 @@ p198
 
 
 ```javascript
-<html>
-    <head>
-        <script>
-            //  전개 연산자를 이용한 객체 깊은 복사
-            let objA = { name: 'aaa', age: 10 };
-            let objB = { ...objA };
-            console.log(objA, objB);    // {name: "aaa", age: 10} {name: "aaa", age: 10}
-    
-            objA.name = 'bbb';
-            objB.age = 100;
-            console.log(objA, objB);    // {name: "bbb", age: 10} {name: "aaa", age: 100}
-        </script>    
-    </head>
-    <body></body>
-</html>
+<script>
+    //  전개 연산자를 이용한 객체 깊은 복사
+    let objA = { name: 'aaa', age: 10 };
+    let objB = { ...objA };
+    console.log(objA, objB);    // {name: "aaa", age: 10} {name: "aaa", age: 10}
+
+    objA.name = 'bbb';
+    objB.age = 100;
+    console.log(objA, objB);    // {name: "bbb", age: 10} {name: "aaa", age: 100}
+</script>
 ```
 
 

@@ -28,9 +28,17 @@ https://www.w3schools.com/jquery/default.asp
 
 Visual Studio Code 실행 > File > Open Folder 메뉴 선택 > C:\JavaScript 폴더 선택
 
-New File 아이콘 클릭 > test.html
+New File 아이콘 클릭 > test.html 파일 생성
 
-Terminal > New Terminal 클릭 (콘솔 창이 뜬다.)
+![image-20200209010312640](images/image-20200209010312640.png)
+
+
+
+![image-20200209010345212](images/image-20200209010345212.png)
+
+
+
+Terminal > New Terminal 메뉴 클릭 (콘솔 창이 뜬다.)
 
 ```bash
 PS C:\javascript> npx http-server
@@ -108,6 +116,8 @@ PS C:\javascript> npx http-server
 
 
 
+**사용자 화면에 구구단 출력**
+
 콘솔 창이 아니라 화면에 보이게 하고싶다 -> body
 
 문서 전체에서 어디에 있는 div인지 알아야만 거기에 값을 넣을 수 있다. 그것을 쉽게 하기 위해 id라는 속성을 부여한다.
@@ -119,9 +129,10 @@ script에서 계산한 것을 display라는 id를 가지고 있는 div에 넣고
     <head>
         <script>
             window.onload = function() {
+                let div = document.getElementById("display");
                 for (let dan = 2; dan <= 9; dan++) {
                     for (let num = 1; num <= 9; num++) {
-                        let div = document.getElementById("display");
+                        //div.innerText = div.innerText + `${dan} * ${num} = ${dan*num}\n`;
                         div.innerText += `${dan} * ${num} = ${dan * num}\n`;
                     }
                 }               
@@ -129,9 +140,7 @@ script에서 계산한 것을 display라는 id를 가지고 있는 div에 넣고
         </script>
     </head>
     <body>
-        <div id="display">
-
-        </div>
+        <div id="display"></div>
     </body>
 </html>
 ```
@@ -173,15 +182,14 @@ id : 속성 이름
     <head>
         <script>
             window.onload = function() {
+                let div = document.getElementById("display");
                 for (let dan = 2; dan <= 9; dan++) {
                     for (let num = 1; num <= 9; num++) {
-                        let div = document.getElementById("display");
                         div.innerText += `<b>${dan}</b> * ${num} = ${dan * num}\n`;
                     }
                 }
                 for (let dan = 2; dan <= 9; dan++) {
                     for (let num = 1; num <= 9; num++) {
-                        let div = document.getElementById("display");
                         div.innerHTML += `<b>${dan}</b> * ${num} = ${dan * num}\n`;
                     }
                 }
@@ -231,8 +239,8 @@ id : 속성 이름
     <head>
         <script>
             window.onload = function() {
+                let div = document.getElementById("display");
                 for (let num = 1; num <= 9; num++) {
-                    let div = document.getElementById("display");
                     for (let dan = 2; dan <= 9; dan++) {
                         div.innerText += `${dan} * ${num} = ${dan * num}\t`;
                     }
@@ -263,7 +271,6 @@ id : 속성 이름
                 for (let num = 1; num <= 9; num ++) {
                     // div.innerText = div.innerText + `${dan} * ${num} = ${dan*num} \n`;
                     div.innerText += `${dan} * ${num} = ${dan*num} \n`;
-
                 }
             }
         </script>
@@ -272,10 +279,7 @@ id : 속성 이름
         <div id="display"></div>
     </body>
 </html>
-
 ```
-
-
 
 
 
@@ -499,17 +503,17 @@ for문 가운데를 true로 했다 -> 무한 루프
     <head>
         <script>
             window.onload = function() {
-                // 배열에 포함된 숫자의 합을 구하시오.
+                //  배열에 포함된 숫자의 합을 구하시오.
                 const values = [ 100, '백', 200, '이백', 300, '삼백' ];
                 let sum = 0;
-                // // for in 구문은 배열의 인덱스를 반환
-                // for (i in values) {
+                // //  for in 구문은 배열의 인덱스를 반환
+                // for (let i in values) {
                 //     let v = Number(values[i]);
                 //     if (!isNaN(v)) {
                 //         sum += v;
                 //     }
                 // }
-                // for of 구문은 배열의 값을 반환
+                //  for of 구문은 배열의 값을 반환
                 for (let i of values) {
                     let v = Number(i);
                     if (!isNaN(v)) {
@@ -655,7 +659,7 @@ let add = function add(x, y) {
 
 
 
-#### function() 생성자 함수를 이용한 함수 생성
+#### Function() 생성자 함수를 이용한 함수 생성
 
 new Function ([arg1[, arg2[, ...argN]],] functionBody)
 
@@ -672,7 +676,7 @@ add(3, 4);
 
 
 
-#### 익명함수
+#### 익명함수 => 익명함수 표현식
 
 p121
 
@@ -899,7 +903,7 @@ https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Ar
 
 
 
-함수라는 것은 argument라는 독특한 값을 가지고 있다.
+함수라는 것은 arguments라는 독특한 값을 가지고 있다.
 
 Array는 자바스크립트가 미리 가지고 있는 객체이다. 내장 객체. 배열 구조를 관리하는 객체
 
@@ -1037,8 +1041,8 @@ f() 호출 후
             let f = f1;
             console.log(f(3));                      // 3
             console.log(f(3, 7, 11));               // 3
-            console.log(f(1, 7, 11, 15, 20, 12));   // 15            
-            console.log(f(1, 7, 11, 15));           // 15            
+            console.log(f(1, 7, 11, 15, 20, 12));   // 15
+            console.log(f(1, 7, 11, 15));           // 15
         </script>
     </head>
     <body></body>
@@ -1052,6 +1056,7 @@ f() 호출 후
 ```javascript
             //  예외를 던지지 않고는 forEach()를 중간에 멈출 수 없음
             //  중간에 멈춰야 한다면 forEach()는 적절하지 않음
+			/*
             function f2() {
                 let value;
                 Array.from(arguments).forEach(i => {
@@ -1072,6 +1077,7 @@ f() 호출 후
                 });  
                 return value; 
             }
+            */
 ```
 
 https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Array/find
@@ -1126,7 +1132,6 @@ function 외부함수() {
     </head>
     <body></body>
 </html>
-
 ```
 
 같은 이름의 다른 기능 구현 -> scope 문제, 함수 재정의 문제 때문에 함수 실행 결과가 의도되지 않게 나올 수 있다.
@@ -1185,19 +1190,19 @@ p139
 <html>
     <head>
         <script>
-            // P139
-            let f1 = function(x, y) { return x + y };
-            f1(2, 3);
+            //  P139
+            let f1 = function(x, y) { return x + y; };
+            f1(2,3);
 
-            function callTenTimes(c1) {
-                for (var i = 0; i < 10; i++) {
-                    c1();
+            function callTenTimes(paramc) {
+                for (var i = 0; i < 10; i ++) {
+                    paramc();
                 }
             }
-            var c = function() {
-                console.log("함수 호출");
-            }
-            callTenTimes(c);
+            var fc = function() {
+                console.log('함수 호출');
+            };
+            callTenTimes(fc);
         </script>
     </head>
     <body></body>
@@ -1226,6 +1231,7 @@ p141
                     console.log("^^"); 
                 };
             }
+
             let f = returnFunction();
             console.log(f);
             f();
@@ -1248,6 +1254,8 @@ p141
 
 
 #### 클로저
+
+p142
 
 ```javascript
 <html>
