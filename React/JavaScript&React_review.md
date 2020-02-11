@@ -1,4 +1,4 @@
-# JavaScript & React review
+# JavaScript & React Review
 
 ## JavaScript
 
