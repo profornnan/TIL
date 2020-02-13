@@ -212,7 +212,9 @@ count1만 계속해서 증가하고 count2는 그대로 유지된다.
 
 p113
 
-리액트는 효율적인 렌더링을 위해서 여러개의 setState 메서드를 배치로 처리 → state 변수와 화면(UI)간 불일치가 발생할 수 있음
+리액트는 효율적인 렌더링을 위해서 여러개의 setState 메서드를 배치로 처리
+
+→ state 변수와 화면(UI)간 불일치가 발생할 수 있음
 
 
 
@@ -331,6 +333,9 @@ class App extends React.Component {
   state = actions.init();
   onIncrement = () => {
     this.setState(actions.increment);
+    /*
+    this.setState(prevState => ({ count : this.state.count + 1 }))
+    */
   };
   onDecrement = () => {
     this.setState(actions.decrement);
@@ -462,7 +467,7 @@ export default App;
 
 
 
-### 리액트 요소와 가상DOM
+## 리액트 요소와 가상DOM
 
 p116
 
@@ -663,13 +668,19 @@ p122
 
 
 
+![image-20200213214236347](images/image-20200213214236347.png)
+
+
+
+https://www.w3schools.com/react/default.asp
 
 
 
 
-#### 생명 주기 메서드
 
+## 생명 주기 메서드
 
+p124
 
 http://projects.wojtekmaj.pl/react-lifecycle-methods-diagram/
 
@@ -687,7 +698,7 @@ import Counter from './Counter';
 
 class App extends React.Component {
   render() {
-    return <Counter />
+    return <Counter/>
   }
 }
 
@@ -774,7 +785,7 @@ import Box from './Box';
 
 class App extends React.Component {
   render() {
-    return <Box />
+    return <Box/>
   }
 }
 
@@ -825,7 +836,7 @@ box 크기가 큰 경우
 
 #### shouldComponentUpdate, getSnapshotBeforeUpdate
 
-
+p140
 
 Box.js
 
