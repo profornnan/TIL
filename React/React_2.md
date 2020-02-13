@@ -349,12 +349,12 @@ p59
 ```javascript
 <script>
 {
-    function makeObject_unsed(key, value) {
+    function makeObject_unused(key, value) {
         const obj = {};
         obj[key] = value;
         return obj;
     }
-    console.log(makeObject_unsed("name", "John"));
+    console.log(makeObject_unused("name", "John"));
 
     //  계산된 속성명 = 객체의 속성명을 동적으로 결정
     function makeObject_used(key, value) {
@@ -364,9 +364,9 @@ p59
 
     let i = 0;
     let obj = {
-        ["val" + i++ ] : i, 
-        ["val" + i++ ] : i, 
-        ["val" + i++ ] : i, 
+        ["val" + i++] : i,
+        ["val" + i++] : i,
+        ["val" + i++] : i,
     };
     console.log(obj.val0, obj.val1, obj.val2);  // 1, 2, 3
 
