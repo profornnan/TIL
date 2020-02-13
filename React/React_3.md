@@ -22,7 +22,7 @@ p74
     // 프로미스를 생성하는 방법
     
     // new 키워드를 사용해서 프로미스를 생성
-    // 이렇게 생생된 프로미스는 대기중 상태가 됨
+    // 이렇게 생성된 프로미스는 대기중 상태가 됨
     // 생성자에 입력된 함수는 resolve와 reject라는 콜백 함수를 매개변수로 가지며, 
     // 비동기로 작업 수행 후 성공했을 때 resolve를 호출하고, 실패했을 때 reject를 호출
     const p1 = new Promise((resolve, reject) => {
@@ -112,6 +112,7 @@ p74
     );
     console.log(p2 === Promise.resolve(p2));    // true
     console.log(p2);            // Promise{<pending>}
+    //console.log(Promise.resolve(p2));           // Promise{<pending>}
     p2.then(data => {
         console.log(p2);        // Promise{<resolved>: "1초 경과"}
         console.log(data);      // '1초 경과'
@@ -368,7 +369,7 @@ reject이고, 첫 번째 then에는 reject가 없으므로 catch 절로 가서 1
 
     function requestData() {
         let url = "http://localhost:8080/es6.html";
-        return fetch(url)
+        return fetch(url) 
             .then(resolve => {
                 console.log("#1", resolve);
                 return resolve;
@@ -377,10 +378,12 @@ reject이고, 첫 번째 then에는 reject가 없으므로 catch 절로 가서 1
                 console.log("#2", error);
                 return error;
             })
-            .finally(() => {
+            // finally 대신 then 을 사용했을 때 차이를 확인
+            .finally(data => {
                 console.log("#3");
                 sendLogToServer("requestData Finished");
-            });
+                //return data;
+            }); 
     }
     requestData().then(resolve => console.log("#4", resolve));
 </script>
@@ -554,6 +557,8 @@ import : 다른 파일에 있는 모듈을 가져온다. 나중에 웹팩이 묶
 
 App.js는 함수 형태로 컴포넌트를 선언하고 있다.
 
+**함수 형태로 컴포넌트를 선언**
+
 ```js
 import React from 'react';
 import logo from './logo.svg';
@@ -585,6 +590,8 @@ export default App;
 ```
 
 
+
+**클래스 형태로 컴포넌트를 선언 → render 함수를 포함**
 
 ```js
 import React from 'react';
@@ -638,7 +645,6 @@ App.js
 
 ```js
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -669,7 +675,7 @@ HTML에서는 닫는 태그가 존재하지 않는(필수가 아닌) 태그들�
 
 
 
-JSX 문법에서는 반드시 열고 닫는 태그가 짝을 이뤄야 한다. 반드시 닫는 태그를 사용해야 한다.
+JSX 문법에서는 반드시 열고 닫는 태그가 짝을 이뤄야 한다. JSX에서는 반드시 닫는 태그를 사용해야 한다.
 
 ```jsx
 <input type="text"/>
@@ -719,7 +725,6 @@ JSX에서는 반드시 하나의 태그(엘리먼트)로 감싸져 있어야 한
 
 ```javascript
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -745,7 +750,7 @@ export default App;
 
 
 
-2개의 `<div>` 엘리먼트를 묶어주는 역할의 `<div>`가 생성 → 불필요한 DOM 객체가 사용(생성)
+2개의 `<div>` 엘리먼트를 묶어주는 역할의 `<div>`가 생성 → 불필요한 DOM 객체가 사용(생성)됨
 
 
 
@@ -753,7 +758,6 @@ export default App;
 
 ```javascript
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -779,13 +783,14 @@ export default App;
 
 불필요한 DOM 요소가 생성되지 않았음
 
+불필요한 DOM 요소 생성을 방지할 수 있음
 
 
-#### JSX 안에 자바스크립트 값 사용
+
+#### JSX 안에 자바스크립트 사용
 
 ```javascript
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -807,7 +812,6 @@ export default App;
 
 ```javascript
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -833,7 +837,6 @@ export default App;
 
 ```javascript
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -870,7 +873,6 @@ export default App;
 
 ```js
 import React from 'react';
-import './App.css';
 
 class App extends React.Component {
   render() {
@@ -975,18 +977,16 @@ render()라는 메소드를 통해서 return 되는, JSX 구문이 해석되서 
 
 #### 주석
 
-
-
 ```js
 import React from 'react';
 import './App.css';
 
 class App extends React.Component {
   render() {
-    let styles = {
-      backgroundColor: 'black', 
+    const styles = {
+      backgroundColor: 'black',
       padding: '16px',
-      color: 'white', 
+      color: 'white',
       fontSize: '12px'
     };
     return (
@@ -1001,6 +1001,9 @@ class App extends React.Component {
           // 이것은 주석이 아닙니다.
           안녕하세요.
           /* 이것은 주석이 아닙니다. */
+        </div>
+        <div className="App">
+          또 안녕하세요.
         </div>
       </>
     );
@@ -1102,7 +1105,6 @@ App.js
 
 ```js
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 import MyName from './MyName';
 
@@ -1174,7 +1176,6 @@ App.js
 
 ```js
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 import MyName from './MyName';
 
@@ -1236,8 +1237,6 @@ App.js
 
 ```js
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
 import MyName from './MyName';
 
 class App extends React.Component {
@@ -1269,7 +1268,7 @@ export default App;
 
 ### 함수형 컴포넌트
 
-MyName1.js 파일을 복사해 MyName2.js 생성
+MyName.js 파일을 복사해 MyName2.js 생성
 
 상태변수 : 해당 컴포넌트에서 가지고 있는 값.
 
@@ -1422,7 +1421,7 @@ class Counter extends React.Component {
     };
     onDecrease = () => {
         this.setState({number: this.state.number - 1})
-    }
+    };
     render() {
         return (
             <div>
@@ -1636,6 +1635,57 @@ C:\react\hello-react2\src\MyComponent.js 파일을 생성
 
 
 
+탬플릿
+
+```js
+import React from 'react';
+
+class MyComponent extends React.Component {
+    state = {
+        desc: '', 
+        currentId: 1, 
+        todoList: [],
+    };
+
+    onAdd = () => {
+
+    };
+
+    onDelete = e => {
+
+    };
+
+    onSaveToServer = () => {
+
+    };
+
+    onChangeDesc = e => {
+
+    };
+
+    render() {
+        const { desc, todoList } = this.state;
+        return (
+            <div>
+                <h3>할 일 목록</h3>
+                <ul>
+                    {
+
+                    }
+                </ul>
+                <input type="text" value={desc} onChange={this.onChangeDesc} />
+                <button onClick={this.onAdd}>추가</button>
+                <button onClick={this.onSaveToServer}>서버에 저장</button>
+            </div>
+        );
+    }
+}
+
+export default MyComponent;
+```
+
+
+
 MyComponent.js
 
 ```js
@@ -1774,7 +1824,7 @@ class MyCompoenet extends React.Component {
                 <ul>
                     {
                         todoList.map(todo => {
-                            console.log(todo)
+                            console.log(todo);
                             return (
                             <li key={todo.id}>
                                 <span>{todo.desc}</span>
@@ -1821,11 +1871,11 @@ filter : 뒤에 명시하고 있는 조건을 만족하는 것들로 다시 배�
 
 ### 컴포넌트의 상태값을 사용하는 코드
 
-
+p109
 
 #### LAB1
 
-App.js
+C:\react\hello-react2\src\App.js
 
 ```js
 import React from 'react';
@@ -1859,7 +1909,7 @@ App.js
 ```js
 import React from 'react';
 
-// 좋아요 버튼을 클릭하면 배경색이 붉은색이면 파란색으로, 파란색이면 붉은색으로 변경
+// "좋아요" 버튼을 클릭하면 배경색이 붉은색이면 파란색으로, 파란색이면 붉은색으로 변경
 class App extends React.Component {
   state = {
     color: 'red'
@@ -1958,6 +2008,10 @@ export default App;
 
 p110
 
+#### LAB1
+
+**증가 버튼을 클릭하면 "현재 카운트는 OOOO입니다."를 출력**
+
 버튼을 클릭하면 몇 번 클릭했는지 count 해주는 컴포넌트
 
 ```react
@@ -2004,7 +2058,7 @@ class Todo extends React.Component {
     };
     onClick = () => {
         this.setState({ count: this.state.count + 1 });
-    }
+    };
     render() {
         return (
             <Fragment>
@@ -2044,7 +2098,7 @@ export default Title;
 
 ---
 
-#### LAB
+#### LAB2
 
 버튼 클릭 횟수가 10 이상이면 글자색을 붉은색으로 변경
 

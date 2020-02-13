@@ -6,11 +6,19 @@ p27
 
 
 
-#### 1 코드를 분할하지 않고 사용
-
 ![image-20200205093012609](images/image-20200205093012609.png)
 
 
+
+"할일추가" 버튼을 클릭하면 할일+일련번호가 추가
+
+
+
+![image-20200211212044590](images/image-20200211212044590.png)
+
+
+
+#### 1 코드를 분할하지 않고 하나의 파일로 구성
 
 C:\react\cra-test\src\Todo.js
 
@@ -18,9 +26,11 @@ C:\react\cra-test\src\Todo.js
 // P27 코드1-20
 import React from 'react';
 
-export function Todo({ title }) {
+function Todo({ title }) {
     return <div>{title}</div>
 }
+
+export default Todo;
 ```
 
 React는 default로 선언되어 있기 때문에 중괄호 없이 사용할 수 있다.
@@ -108,7 +118,7 @@ import TodoList from './TodoList';
 function App() {
   return (
     <div className="App">
-      <TodoList />
+      <TodoList/>
     </div>
   );
 }
@@ -140,7 +150,9 @@ http://localhost:3000/
 
 react.js, react-dom.js, index.js, App.js, TodoList.js, Todo.js 등이 하나의 파일(main.chunck.js)로 묶여서 내려옴
 
-→ 첫 화면 로딩에 부하가 발생 ⇒ 불필요한 부하를 줄이기 위해 코드 분할이 필요
+→ 첫 화면 로딩에 부하가 발생
+
+⇒ 불필요한 부하를 줄이기 위해 코드 분할이 필요
 
 크롬 개발자도구의 Network 탭에서 확인 가능
 
@@ -174,6 +186,16 @@ Todo.js는 버튼을 누르기 전에는 필요 없다. 버튼을 눌렀을 때(
 
 #### 2 코드 분할을 통해서 동적으로 자바스크립트 파일을 로딩
 
+C:\react\cra-test\src\Todo.js
+
+```js
+import React from 'react';
+
+export function Todo({ title }) {
+    return <div>{title}</div>
+}
+```
+
 
 
 C:\react\cra-test\src\TodoList.js
@@ -193,7 +215,7 @@ class TodoList extends Component {
         import('./Todo.js').then(({ Todo }) => {
             const { todos } = this.state;
             const position = todos.length + 1;
-            const newTodo = <Todo title={`할일 ${position}`} />;
+            const newTodo = <Todo title={`할 일 ${position}`} />;
             this.setState({ todos: [...todos, newTodo] });
         });
     };
@@ -201,7 +223,7 @@ class TodoList extends Component {
         const { todos } = this.state;
         return (
             <div>
-                <button onClick={this.doClick}>할일추가</button>
+                <button onClick={this.doClick}>할 일 추가</button>
                 {todos}
             </div>
         );
@@ -327,36 +349,36 @@ p59
 ```javascript
 <script>
 {
-    function makeObject_unused(key, value) {
+    function makeObject_unsed(key, value) {
         const obj = {};
         obj[key] = value;
         return obj;
     }
-    console.log(makeObject_unused("name", "John"));
+    console.log(makeObject_unsed("name", "John"));
 
-    // 계산된 속성명 = 객체의 속성명을 동적으로 결정
+    //  계산된 속성명 = 객체의 속성명을 동적으로 결정
     function makeObject_used(key, value) {
         return { [key] : value };
     }
-    console.log(makeObject_used("name", "John"));
+    console.log(makeObject_used("name", "John"));    
 
     let i = 0;
     let obj = {
-        ["val" + i++] : i,
-        ["val" + i++] : i,
-        ["val" + i++] : i,
+        ["val" + i++ ] : i, 
+        ["val" + i++ ] : i, 
+        ["val" + i++ ] : i, 
     };
-    console.log(obj.val0, obj.val1, obj.val2);
+    console.log(obj.val0, obj.val1, obj.val2);  // 1, 2, 3
 
     let param = 'size';
     let config = {
-        [param]: 12,
+        [param]: 12, 
         ["mobile" + param.charAt(0).toUpperCase() + param.slice(1)]: 4
     };
     /*
         { size: 12, mobileSize: 4 }
     */
-    console.log(config);  // { size: 12, mobileSize: 4 }
+    console.log(config);    // { size: 12, mobileSize: 4 }
 }
 </script>
 ```
@@ -406,7 +428,7 @@ p60
     console.log(Math.max(1, 3, 7, 9));  // 9
 
     const numbers = [ 1, 3, 7, 9 ];
-    console.log(Math.max(...numbers));
+    console.log(Math.max(...numbers));  // 9
 }
 // 전개 연산자를 이용해서 배열과 객체를 복사
 {
@@ -612,6 +634,7 @@ p63
     console.log(a);  // undefined
     console.log(b);  // undefined
 }
+// 객체 비구조화에서 별칭 사용
 {
     const obj1 = { age: 21, name: "Mike" };
 
@@ -849,7 +872,7 @@ p69
     const numbers = [ 10, 20, 30, 40 ];
 
     const result1 = getValues(numbers, 5, 25);
-    const result2 = getValues({numbers, greaterThan: 5, lessThan: 25 });  // ==> 가독성이 향상됨
+    const result2 = getValues({ numbers, greaterThan: 5, lessThan: 25 });  // ==> 가독성이 향상됨
 }
 // 명명된 매개변수를 사용하면 사용하지 않는 매개변수를 생략하는 것도 가능
 {
@@ -981,7 +1004,7 @@ p70
 
 p71
 
-객체의 구조를 반환하는데 new라는 키워드와 만나서 객체를 생성하는데 사용하는 함수 => 생성자 함수
+객체의 구조를 반환하는데, new라는 키워드와 만나서 객체를 생성하는데 사용하는 함수 => 생성자 함수
 
 ```javascript
 <script>
