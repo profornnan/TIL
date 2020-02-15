@@ -30,7 +30,24 @@ p217
 
 
 
-Profile.js (클래스형 컴포넌트)
+App.js
+
+```js
+import React from 'react';
+import Profile from './Profile';
+
+class App extends React.Component {
+  render() {
+    return <Profile/>
+  }
+}
+
+export default App;
+```
+
+
+
+클래스형 컴포넌트 (Profile.js)
 
 ```js
 import React from 'react';
@@ -53,33 +70,14 @@ export default Profile;
 
 
 
-App.js
-
-```js
-import React from 'react';
-import Profile from './Profile';
-
-class App extends React.Component {
-  render() {
-    return <Profile/>
-  }
-}
-
-export default App;
-```
-
-
-
-
-
-Profile.js (함수형 컴포넌트)
+함수형 컴포넌트 (Profile.js)
 
 ```js
 import React, { useState } from 'react';
 
 function Profile() {
     // state = { name: '' };
-    // [ 상태값, 상태값변경함수 ] = React.userState(초기값);
+    // [ 상태값, 상태값변경함수 ] = React.useState(초기값);
     const [ name, setName ] = useState('');
     
     // onChange = e => this.setState({ name: e.target.value });
@@ -108,9 +106,7 @@ export default Profile;
 
 
 
-클래스형 컴포넌트
-
-Profile.js
+클래스형 컴포넌트 (Profile.js)
 
 ```js
 import React from 'react';
@@ -140,19 +136,18 @@ export default Profile;
 
 ##### 방법1
 
-함수형 컴포넌트
-
-Profile.js
+함수형 컴포넌트 (Profile.js)
 
 ```js
 import React, { useState } from 'react';
 
 function Profile() {
-    //state = { name: '', age: 0 };
+    // state = { name: '', age: 0 };
+    // [ 상태값, 상태값변경함수 ] = React.useState(초기값);
     const [ name, setName ] = useState('');
     const [ age, setAge ] = useState(0);
-    //onChangeName = e => this.setState({ name: e.target.value });
-    //onChangeAge = e => this.setState({ age: e.target.value });
+    // onChangeName = e => this.setState({ name: e.target.value });
+    // onChangeAge = e => this.setState({ age: e.target.value });
     return (
         <>
             <p>{`이름: ${name}`}</p>
@@ -176,9 +171,7 @@ export default Profile;
 
 ##### 방법2
 
-함수형 컴포넌트
-
-Profile.js
+함수형 컴포넌트 (Profile.js)
 
 ```js
 import React, { useState } from 'react';
@@ -264,7 +257,7 @@ export default Profile;
 
 
 
-##### userEffect 훅을 사용하면 코드 중복으르 줄이고 간결하게 만들 수 있다.
+##### userEffect 훅을 사용하면 코드 중복을 줄이고 간결하게 만들 수 있다.
 
 
 
@@ -416,6 +409,10 @@ export default MyComponent;
 
 
 
+![image-20200215231326560](images/image-20200215231326560.png)
+
+
+
 **훅으로 구현**
 
 ```js
@@ -423,9 +420,12 @@ import React, { useState, useEffect } from 'react';
 
 function MyComponent ({userId}) {
     const [ user, setUser ] = useState(null);
-    useEffect(() => { 
-        getUserApi(userId).then(data => setUser(data))
-    });
+    useEffect(
+        () => {
+            getUserApi(userId).then(data => setUser(data));
+        },
+        [ userId ]  // userId가 변경된 것만 호출
+    );
     return (
         <div>
             { !user && <p>사용자 정보를 가져오는 중 ...</p> }
@@ -456,13 +456,17 @@ useEffect는 생명 주기 함수 대신 사용할 수 있는 API
 
 
 
+useEffect 훅의 두 번째 매개변수로 배열을 입력하면, 배열의 값이 변경되는 경우에만 함수가 호출된다.
+
+
+
 #### 다음 클래스형 컴포넌트를 함수형 컴포넌트로 변경하시오.
 
-**Profile.js**
+Profile.js
 
 ```js
 import React from 'react';
- 
+
 class Profile extends React.Component {
     state = { user: null, width: window.innerWidth };
     onResize = () => {
@@ -506,6 +510,10 @@ export default Profile;
 
 
 
+![image-20200215233946792](images/image-20200215233946792.png)
+
+
+
 **함수형 컴포넌트로 전환**
 
 Profile.js
@@ -513,7 +521,7 @@ Profile.js
 ```js
 import React, { useEffect, useState } from 'react';
  
-function Profile ({ userId}) {
+function Profile ({ userId }) {
     const [ user, setUser ] = useState(null);
     const [ width, setWidth ] = useState(window.innerWidth);
 
@@ -558,7 +566,9 @@ p225
 
 훅 이름은 "use"로 시작
 
-차의 너비를 관리하는 커스텀 훅
+
+
+**창의 너비를 관리하는 커스텀 훅**
 
 useWindowWidth.js
 
@@ -588,7 +598,7 @@ Profile.js
 import React, { useState } from 'react';
 import useWindowWidth from './useWindowWidth';
 
-function Profile ({ userId}) {
+function Profile ({ userId }) {
     const width = useWindowWidth();
     const [ name, setName ] = useState('');
     return (
@@ -660,13 +670,18 @@ function ParentComponent({user}) {
 function ChildComponent({user}) {
     return (
         <>
-        <p>{`name is ${user.name}`}</p>
-        <p>{`age is ${user.age}`}</p>
+        	<p>{`name is ${user.name}`}</p>
+        	<p>{`age is ${user.age}`}</p>
         </>
     );
 }
+
 export default Profile;
 ```
+
+
+
+![image-20200216012600297](images/image-20200216012600297.png)
 
 
 
@@ -702,8 +717,8 @@ function ChildComponent() {
         <UserContent.Consumer>
             { user => (
                 <>
-                <p>{`name is ${user.name}`}</p>
-                <p>{`age is ${user.age}`}</p>
+                	<p>{`name is ${user.name}`}</p>
+                	<p>{`age is ${user.age}`}</p>
                 </>
             )}
         </UserContent.Consumer>
@@ -714,13 +729,18 @@ function ChildComponentWithHook() {
     const user = useContext(UserContent);
     return (
         <>
-        <p>{`name is ${user.name}`}</p>
-        <p>{`age is ${user.age}`}</p>
+        	<p>{`name is ${user.name}`}</p>
+        	<p>{`age is ${user.age}`}</p>
         </>
     );
 }
+
 export default Profile;
 ```
+
+
+
+![image-20200216012653151](images/image-20200216012653151.png)
 
 
 
@@ -763,6 +783,10 @@ class Profile extends React.Component {
 
 export default Profile;
 ```
+
+
+
+![image-20200216014928756](images/image-20200216014928756.png)
 
 
 
