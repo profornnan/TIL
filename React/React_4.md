@@ -208,7 +208,7 @@ count1만 계속해서 증가하고 count2는 그대로 유지된다.
 
 
 
-### setState 메소드를 연속해서 호출하면 발생하는 문제점
+#### setState 메소드를 연속해서 호출하면 발생하는 문제점
 
 p113
 
@@ -257,7 +257,7 @@ export default App;
 
 
 
-#### 방법1. 호출 직전의 상태값을 매개변수로 받아서 처리
+##### 방법1. 호출 직전의 상태값을 매개변수로 받아서 처리
 
 
 
@@ -300,7 +300,7 @@ count2는 바로 직전값을 받아와서 그 값에 1을 더한다. -> 뒤에 
 
 
 
-#### 방법2. 상태값 로직을 분리해서 사용
+##### 방법2. 상태값 로직을 분리해서 사용
 
 
 
@@ -356,7 +356,7 @@ export default App;
 
 
 
-### setState 메소드는 비동기로 처리되지만 호출 순서는 보장된다.
+#### setState 메소드는 비동기로 처리되지만 호출 순서는 보장된다.
 
 p114
 
@@ -410,7 +410,7 @@ export default App;
 
 
 
-### setState 메소드의 두번째 매개변수는 처리가 끝났을 때 호출되는 콜백 함수
+#### setState 메소드의 두번째 매개변수는 처리가 끝났을 때 호출되는 콜백 함수
 
 p115
 
@@ -1000,17 +1000,21 @@ export default App;
 
 
 
-![image-20200207164550187](images/image-20200207164550187.png)
-
 2번 클릭한 경우
 
+![image-20200207164550187](images/image-20200207164550187.png)
 
+
+
+3번 클릭한 경우
 
 ![image-20200207171011095](images/image-20200207171011095.png)
 
 ![image-20200207164639735](images/image-20200207164639735.png)
 
-3번 클릭한 경우
+
+
+![image-20200215172800197](images/image-20200215172800197.png)
 
 
 
@@ -1018,7 +1022,7 @@ child에서 발생한 에러를 부모가 잡을 때에는 getDerivedStateFromEr
 
 
 
-#### 컨텍스트 API
+## 컨텍스트 API
 
 p148
 
@@ -1045,8 +1049,6 @@ p148
 	<p>OOO님 안녕하세요.</p>
 </Greeting>
 ```
-
-
 
 
 
@@ -1080,7 +1082,6 @@ function Profile({username}) {
 function Greeting({username}) {
   return (
     <p>{`${username}님 안녕하세요.`}</p>
-
   );
 }
 
@@ -1203,6 +1204,10 @@ export default App;
 
 
 
+![image-20200215175545142](images/image-20200215175545142.png)
+
+
+
 ##### 여러 컨텍스트를 중첩해서 사용
 
 p150
@@ -1275,4 +1280,55 @@ export default App;
 ![image-20200207174842268](images/image-20200207174842268.png)
 
 
+
+## 상태값 올림(lifting state up)
+
+p189
+
+
+
+자식 컴포넌트에서 부모 컴포넌트의 상태값을 변경하고 싶은 경우 사용
+
+부모 컴포넌트는 자신의 이벤트 처리 함수를 자식 컴포넌트에 전달
+
+자식 컴포넌트는 이벤트가 발생하면 부모 컴포넌트가 전달한 이벤트 처리 함수를 호출
+
+
+
+App.js
+
+```js
+import React from 'react';
+import produce from 'immer'; 
+ 
+class Parent extends React.Component {
+    state = { name: '', };
+    onChangeName = e => {
+        const name = e.target.value;
+        this.setState(
+            //  produce(state => { state.name = name; }),
+           { name }
+        );
+    };
+    render() {
+        const { name } = this.state;
+        return (
+            <div>
+                <p>{`name is ${name}`}</p>
+                <Child name={name} onChange={this.onChangeName} maxLength={20} />
+            </div>
+        );
+    }
+} 
+ 
+function Child({name, onChange}) {
+    return <p><input value={name} onChange={onChange} /></p>
+}
+ 
+export default Parent;
+```
+
+
+
+![image-20200215181544562](images/image-20200215181544562.png)
 
