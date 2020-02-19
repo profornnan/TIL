@@ -1306,6 +1306,43 @@ public class HelloJava {
 
 
 
+```java
+import java.io.IOException;
+import java.util.Scanner;
+
+public class HelloJava {
+	public static void main(String[] args) throws IOException {
+		Scanner sc = new Scanner(System.in);
+		while(sc.hasNextLine()) {
+			String input = sc.nextLine();
+			System.out.println(">>> " + input);
+			if (input.equals("X"))
+				break;
+		}
+		System.out.print("END");
+		sc.close();
+	}
+}
+```
+
+
+
+Console
+
+```
+abcd
+>>> abcd
+1234
+>>> 1234
+X
+>>> X
+END
+```
+
+
+
+
+
 기본 타입 값 비교 ⇒ == 사용
 
 문자열 타입 값 비교 ⇒ equals() 메소드 사용
