@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XMLHttpRequest</title>
+    <script>
+        window.onload = () => {
+            document.getElementById('get').onclick = () => {
+                // Ajax를 수행합니다.
+                const request = new XMLHttpRequest();
+                request.open('GET', '/products', true);
+                request.send();
+                request.onreadystatechange = (event) => {
+                    if (request.readyState == 4) {
+                        if (request.status == 200) {
+                            // 출력합니다.
+                            document.getElementById('output').value = request.responseText;
+                        };
+                    };
+                };
+            };
+
+            document.getElementById('post').onclick = () => {
+                // 변수를 선언합니다.
+                const name = document.getElementById('name').value;
+                const price = document.getElementById('price').value;
+
+                // Ajax를 수행합니다.
+                const request = new XMLHttpRequest();
+                request.open('POST', '/products', true);
+                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                request.send('name=' + name + '&price=' + price);
+                request.onreadystatechange = (event) => {
+                    if (request.readyState == 4) {
+                        if (request.status == 200) {
+                            // 출력합니다.
+                            document.getElementById('output').value = request.responseText;
+                        };
+                    };
+                };
+            };
+
+            document.getElementById('put').onclick = () => {
+                // 변수를 선언합니다.
+                const name = document.getElementById('name').value;
+                const price = document.getElementById('price').value;
+
+                // Ajax를 수행합니다.
+                const request = new XMLHttpRequest();
+                request.open('PUT', '/products/0', true);
+                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                request.send('name=' + name + '&price=' + price);
+                request.onreadystatechange = (event) => {
+                    if (request.readyState == 4) {
+                        if (request.status == 200) {
+                            // 출력합니다.
+                            document.getElementById('output').value = request.responseText;
+                        };
+                    };
+                };
+            };
+
+            document.getElementById('delete').onclick = () => {
+                // Ajax를 수행합니다.
+                const request = new XMLHttpRequest();
+                request.open('DELETE', '/products/0', true);
+                request.send();
+                request.onreadystatechange = (event) => {
+                    if (request.readyState == 4) {
+                        if (request.status == 200) {
+                            // 출력합니다.
+                            document.getElementById('output').value = request.responseText;
+                        };
+                    };
+                };
+            };
+        };
+    </script>
+</head>
+<body>
+    <button id="get">GET</button>
+    <button id="post">POST</button>
+    <button id="put">PUT</button>
+    <button id="delete">DELETE</button>
+    <h1>input</h1>
+    <input id="name" />
+    <input id="price" />
+    <h1>output</h1>
+    <textarea id="output" disabled="disabled" cols="40" rows="5"></textarea>
+</body>
+</html>

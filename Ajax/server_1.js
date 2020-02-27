@@ -44,7 +44,7 @@ app.all('/data.json', (request, response) => {
 
 app.all('/data.xml', (request, response) => {
     let output = '';
-    output += '<?xml version="1.0" encoding="UTF-8" ?>';
+    output += '<?xml version="1.0" encoding="UTF-8"?>';
     output += '<products>';
     items.forEach((item) => {
         output += '<product>';
