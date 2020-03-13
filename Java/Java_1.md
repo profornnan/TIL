@@ -158,7 +158,7 @@ object 파일을 묶어서 하나의 exe 파일을 만든다.
 
 
 
-### JAVA_HOME 및 PATHE 환경변수 등록
+### JAVA_HOME 및 Path 환경변수 등록
 
 
 
