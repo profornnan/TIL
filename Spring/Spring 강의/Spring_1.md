@@ -967,7 +967,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.spring.framework:spring-context:5.0.2.RELEASE'
+    compile 'org.springframework:spring-context:5.0.2.RELEASE'
 }
 
 wrapper {
@@ -986,7 +986,7 @@ gradle이 설지되어 있지 않은 경우가 있을 수 있다. 프로젝트 �
 
 
 ```bash
-c:\>cd eclipse-workspace\spring5\ex02
+c:\>cd c:\eclipse-workspace\spring5\ex02
 
 c:\eclipse-workspace\spring5\ex02>dir
  C 드라이브의 볼륨: Local Disk
@@ -1035,6 +1035,19 @@ gradle을 실행하기 위해 꼭 필요한 파일들이 생성되었다.
 
 
 
+### gradlew compileJava 명령
+
+```bash
+C:\>cd c:\eclipse-workspace\spring5\ex02
+
+c:\eclipse-workspace\spring5\ex02>gradlew.bat compileJava
+Starting a Gradle Daemon, 1 incompatible and 1 stopped Daemons could not be reused, use --status for details
+
+BUILD SUCCESSFUL in 20s
+```
+
+
+
 ### 그레이들 프로젝트 임포트
 
 File => Import
@@ -1048,6 +1061,10 @@ Next
 
 
 ![image-20200408172515898](images/image-20200408172515898.png)
+
+
+
+![image-20200409112429539](images/image-20200409112429539.png)
 
 
 
@@ -1104,6 +1121,7 @@ package ex01;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+// 스프링 설정 클래스(파일)를 나타내는 어노테이션
 @Configuration		// Ctrl + Shift + O => import 구문을 자동으로 생성
 public class AppContext {
 	
@@ -1116,9 +1134,17 @@ public class AppContext {
 }
 ```
 
-@Bean을 붙이면 해당하는 메서드가 생성하는 객체를 스프링이 관리하는 bean 객체로 등록한다는 뜻이다. Greeter 라는 타입의 greeter 라는 이름의 bean이 만들어진다.
+@Bean을 붙이면 해당하는 메서드가 생성하는 객체를 스프링이 관리하는 bean 객체로 등록한다는 뜻이다. Greeter 타입의 greeter 라는 이름의 bean이 만들어진다.
 
 Greeter 라는 타입의 객체를 생성해서 return 한다.
+
+@Configuration은 Spring의 설정 클래스(파일)임을 나타내는 어노테이션이다.
+
+@Bean은 해당 메서드가 생성한 객체를 스프링이 관리하는 빈 객체로 등록
+
+객체의 생성, 소멸 등의 관리를 스프링이 해준다.
+
+greeter라는 메서드는 Greeter 타입의 Bean 객체를 만들어준다.
 
 
 
@@ -1137,9 +1163,31 @@ public class Main {
 		String msg = g.greet("스프링");
 		System.out.println(msg);
 		ctx.close();
+		
+		// 기존 방법
+		Greeter g2 = new Greeter();
+		g2.setFormat("%s, 안녕!!");
+		String msg2 = g2.greet("스프링");
+		System.out.println(msg2);
 	}
 }
 ```
+
+BeanFactory, ApplicationContext
+
+Spring Container는 설정 파일을 읽어서 Bean을 만들고 Bean을 요청했을 때 제공하는 역할을 한다.
+
+Bean을 만들고 관리하려면 어떤 것을 생성해야하고 어디에 주입해야하는지 알아야 한다. AppContext에 정의된 것을 읽어와서 만들어준다.
+
+AnnotationConfigApplicationContext는 bean 객체를 만들고 관리해주는 역할
+
+Java 기반의 어노테이션을 이용한 설정 파일을 읽어서 해당하는 bean을 생성하는 역할
+
+우리가 만들어놓은 설정 파일을 읽어서 그것을 관리한다.
+
+만들어진 bean을 사용. getBean에 있는 "greeter"는 bean 이름이다. AppContext의 메서드 이름. Greeter.class는 해당 bean의 타입
+
+제어권을 넘긴다.
 
 
 
@@ -1149,7 +1197,77 @@ public class Main {
 스프링, 안녕하세요.
 4월 08, 2020 5:54:00 오후 org.springframework.context.support.AbstractApplicationContext doClose
 정보: Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@41906a77: startup date [Wed Apr 08 17:54:00 KST 2020]; root of context hierarchy
+스프링, 안녕!!
 ```
 
 
+
+스프링 컨테이너
+
+ApplicationContext(BeanFactory)
+
+빈 객체의 생성, 초기화, 보관, 제거 등을 관리
+
+
+
+빈 객체는 싱글톤(singleton) 범위를 가진다.
+
+→ 한 개의 @Bean 어노테이션에 대해 한 개의 빈 객체를 생성
+
+* 싱글톤 범위 외에 프로토타입 범위도 있음
+
+
+
+Main.java
+
+```java
+package ex01;
+
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+public class Main {
+	public static void main(String[] args) {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(AppContext.class);
+		
+		Greeter g = ctx.getBean("greeter", Greeter.class);
+		String msg = g.greet("스프링");
+		System.out.println(msg);
+		
+		Greeter g2 = new Greeter();
+		Greeter g3 = new Greeter();
+		
+		System.out.println("g2 : " + g2);
+		System.out.println("g3 : " + g3);
+		System.out.println(g2 == g3);
+		
+		Greeter g4 = ctx.getBean("greeter", Greeter.class);
+		Greeter g5 = ctx.getBean("greeter", Greeter.class);
+		
+        // 빈 객체는 싱글톤 범위(scope)를 가진다.
+		System.out.println("g4 : " + g4);
+		System.out.println("g5 : " + g5);
+		System.out.println(g4 == g5);
+		
+		ctx.close();
+	}
+}
+```
+
+
+
+```
+4월 09, 2020 10:45:22 오전 org.springframework.context.support.AbstractApplicationContext prepareRefresh
+정보: Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@41906a77: startup date [Thu Apr 09 10:45:22 KST 2020]; root of context hierarchy
+스프링, 안녕하세요.
+4월 09, 2020 10:45:23 오전 org.springframework.context.support.AbstractApplicationContext doClose
+정보: Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@41906a77: startup date [Thu Apr 09 10:45:22 KST 2020]; root of context hierarchy
+g2 : ex01.Greeter@6cc7b4de
+g3 : ex01.Greeter@32cf48b7
+false
+g4 : ex01.Greeter@679b62af
+g5 : ex01.Greeter@679b62af
+true
+```
+
+new를 이용해 만들면 만들어지는 객체의 주소, ID 값이 다르다.
 
