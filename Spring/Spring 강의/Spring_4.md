@@ -1434,7 +1434,23 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MemberRegisterService {
-
+	
+	@Autowired
+	private MemberDao memberDao;
+	
+	public Long regist(RegisterRequest req) {
+		Member member = memberDao.selectByEmail(req.getEmail());
+		
+		if (member != null)
+			throw new DuplicateMemberException("이메일 중복" + req.getEmail());
+		
+		Member newMember = new Member(
+			req.getEmail(), req.getPassword(), req.getName(), LocalDateTime.now()	
+		);
+		memberDao.insert(newMember);
+		
+		return newMember.getId();
+	}
 }
 ```
 
@@ -1472,6 +1488,79 @@ public class MemberRegisterService {
 
 
 @ComponentScan 애노테이션에 basePackages의 값이 "spring", "spring2"인 경우 어떤 결과가 발생할까?
+
+
+
+/ex03/src/main/java/config/AppConf.java
+
+```java
+@Configuration
+@ComponentScan(basePackages = { "spring" })
+public class AppConf {
+    	:
+}
+```
+
+⇒ 컴포넌트 스캔 범위가 spring 패키지로 한정되어 있기 때문에 정상적으로 동작
+
+
+
+/ex03/src/main/java/config/AppConf.java
+
+```java
+@Configuration
+@ComponentScan(basePackages = { "spring", "spring2" })
+public class AppConf {
+    	:
+}
+```
+
+⇒ 컴포넌트 스캔 범위에 동일한 이름의 컴포넌트가 여러 개 있는 경우 ConflictionBeanDefinitionException 예외가 발생
+
+
+
+```
+4월 13, 2020 9:35:11 오전 org.springframework.context.support.AbstractApplicationContext prepareRefresh
+정보: Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@5387f9e0: startup date [Mon Apr 13 09:35:11 KST 2020]; root of context hierarchy
+4월 13, 2020 9:35:12 오전 org.springframework.context.support.AbstractApplicationContext refresh
+경고: Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [config.AppConf]; nested exception is org.springframework.context.annotation.ConflictingBeanDefinitionException: Annotation-specified bean name 'memberRegisterService' for bean class [spring2.MemberRegisterService] conflicts with existing, non-compatible bean definition of same name and class [spring.MemberRegisterService]
+Exception in thread "main" org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [config.AppConf]; nested exception is org.springframework.context.annotation.ConflictingBeanDefinitionException: Annotation-specified bean name 'memberRegisterService' for bean class [spring2.MemberRegisterService] conflicts with existing, non-compatible bean definition of same name and class [spring.MemberRegisterService]
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:180)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.processConfigBeanDefinitions(ConfigurationClassPostProcessor.java:316)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry(ConfigurationClassPostProcessor.java:233)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanDefinitionRegistryPostProcessors(PostProcessorRegistrationDelegate.java:273)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:93)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:693)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:531)
+	at org.springframework.context.annotation.AnnotationConfigApplicationContext.<init>(AnnotationConfigApplicationContext.java:88)
+	at main.MainForSpring.main(MainForSpring.java:27)
+Caused by: org.springframework.context.annotation.ConflictingBeanDefinitionException: Annotation-specified bean name 'memberRegisterService' for bean class [spring2.MemberRegisterService] conflicts with existing, non-compatible bean definition of same name and class [spring.MemberRegisterService]
+	at org.springframework.context.annotation.ClassPathBeanDefinitionScanner.checkCandidate(ClassPathBeanDefinitionScanner.java:348)
+	at org.springframework.context.annotation.ClassPathBeanDefinitionScanner.doScan(ClassPathBeanDefinitionScanner.java:286)
+	at org.springframework.context.annotation.ComponentScanAnnotationParser.parse(ComponentScanAnnotationParser.java:132)
+	at org.springframework.context.annotation.ConfigurationClassParser.doProcessConfigurationClass(ConfigurationClassParser.java:284)
+	at org.springframework.context.annotation.ConfigurationClassParser.processConfigurationClass(ConfigurationClassParser.java:241)
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:198)
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:166)
+	... 8 more
+```
+
+
+
+⇒ 해결 방법 : 컴포넌트의 이름을 다르게 설정
+
+
+
+/ex03/src/main/java/spring2/MemberRegisterService.java
+
+```java
+package spring2;
+
+@Component("memberRegSvr")
+public class MemberRegisterService {
+    		:
+}
+```
 
 
 
