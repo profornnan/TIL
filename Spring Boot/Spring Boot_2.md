@@ -543,7 +543,7 @@ xml은 >, <, ", ', & 과 같은 문자나 공백을 허용하지 않지만, `<![
 
 /board/src/main/resources/templates/board/boardList.html
 
-```jsp
+```html
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -627,4 +627,14 @@ values ('test', 'test', 'tester', now());
 ![image-20200416171655857](images/image-20200416171655857.png)
 
 
+
+### Thymeleaf
+
+https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#standard-expression-syntax
+
+* Variable Expressions: `${...}`
+  * 컨트롤러에서 보내준 데이터를 담고있는 변수
+  * 컨트롤러에서 조회 결과를 list라는 이름으로 View에 던진다.
+  * 변수를 가지고 제어할 때 사용한다.
+* #lists : methods for lists.
 
