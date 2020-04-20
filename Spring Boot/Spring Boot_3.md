@@ -505,6 +505,31 @@ public class BoardServiceImpl implements BoardService {
 
 
 
+### 리다이렉트(redirect)
+
+```
+ 클라이언트                                      웹서버
+(웹브라우저)            요청
+        ------------------------------------------> abc.gif
+                 응답 (200 OK, 404 Not Found)
+abc.gif <------------------------------------------ 
+
+                   login.do?id=abc&pw=123
+        -------------------->---------------------+ login.do
+                  302 Move Temp.                  |
+                  Location: main.do               |
+        +-------------------<---------------------+ 일치하는 ID/PW가 존재하는 경우
+        |         GET main.do HTTP/1.0  
+        +------------------->---------------------> main.do
+  main  <------------------------------------------ 
+
+ login  <------------------------------------------ 일치하는 ID/PW가 존재하지 않을 때
+```
+
+동적 자원에 대한 요청. id, pw에 따라 다른 유형의 응답을 준다.
+
+
+
 ### 상세 화면 수정
 
 /board/src/main/resources/templates/board/boardDetail.html
@@ -753,6 +778,30 @@ level="DEBUG" 설정 시 debug 이상 레벨이 출력된다.
 
 
 
+* Appender 종류
+  * ConsoleAppender
+  * FileAppender
+  * RollingFileAppender
+  * SMTPAppender
+  * DBAppender
+  * SocketAppender
+  * SSLSocketAppender
+
+
+
+ConsoleAppender, RollingFileAppender를 자주 사용한다.
+
+
+
+* Pattern 요소
+  * %d : 로그 기록 시간
+  * %5p : 로깅 레벨 (5자리 유지)
+  * %m : 로그 메시지
+  * %n : 개행 문자 (new line)
+  * %c : 로깅이 발생한 카테고리
+
+
+
 /board/src/main/java/board/controller/BoardController.java
 
 ```java
@@ -844,6 +893,8 @@ public class BoardController {
 
 ### Log4JDBC
 
+http://log4jdbc.brunorozendo.com/
+
 JDBC Proxy driver for logging SQL and other interesting information
 
 
@@ -881,7 +932,7 @@ dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
-		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+		// exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}
 	
 	compile 'org.bgee.log4jdbc-log4j2:log4jdbc-log4j2-jdbc4.1:1.16'
@@ -960,5 +1011,149 @@ mybatis.configuration.map-underscore-to-camel-case=true
 		<appender-ref ref="console" />
 	</root>	
 </configuration>
+```
+
+
+
+---
+
+
+
+게시판 접속
+
+http://localhost:8080/board/openBoardList.do
+
+
+
+```
+2020-04-20 09:57:13,042  INFO [board.BoardApplication] Started BoardApplication in 9.607 seconds (JVM running for 11.803)
+2020-04-20 09:57:14,424 DEBUG [board.controller.BoardController] 디버그
+2020-04-20 09:57:14,424  INFO [board.controller.BoardController] 정보
+2020-04-20 09:57:14,424  WARN [board.controller.BoardController] 경고
+2020-04-20 09:57:14,424 ERROR [board.controller.BoardController] 오류
+2020-04-20 09:57:14,449  INFO [jdbc.sqlonly] select 1
+
+2020-04-20 09:57:14,456 DEBUG [board.mapper.BoardMapper.selectBoardList] ==>  Preparing: select board_idx, title, hit_cnt, date_format(created_datetime, '%Y.%m.%d %H:%i:%s') as created_datetime from t_board where deleted_yn = 'N' order by board_idx desc 
+2020-04-20 09:57:14,493 DEBUG [board.mapper.BoardMapper.selectBoardList] ==> Parameters: 
+2020-04-20 09:57:14,493  INFO [jdbc.sqlonly] select board_idx, title, hit_cnt, 
+			date_format(created_datetime, '%Y.%m.%d %H:%i:%s') as created_datetime
+			from t_board
+			where deleted_yn = 'N'
+			order by board_idx desc
+
+2020-04-20 09:57:14,622  INFO [jdbc.resultsettable] 
+|----------|-------|--------|--------------------|
+|board_idx |title  |hit_cnt |created_datetime    |
+|----------|-------|--------|--------------------|
+|4         |test   |2       |2020.04.17 17:06:20 |
+|3         |tested |9       |2020.04.17 10:22:24 |
+|2         |test   |5       |2020.04.17 10:15:31 |
+|1         |tester |2       |2020.04.16 17:15:41 |
+|----------|-------|--------|--------------------|
+
+2020-04-20 09:57:14,622 DEBUG [board.mapper.BoardMapper.selectBoardList] <==      Total: 4
+```
+
+
+
+```
+2020-04-20 10:52:32,396 DEBUG [board.mapper.BoardMapper.insertBoard] ==>  Preparing: insert into t_board (title, contents, created_datetime, creator_id) values (?, ?, now(), 'admin') 
+2020-04-20 10:52:32,401 DEBUG [board.mapper.BoardMapper.insertBoard] ==> Parameters: 제목입니다.(String), 내용입니다.(String)
+2020-04-20 10:52:32,401  INFO [jdbc.sqlonly] insert into t_board (title, contents, created_datetime, creator_id)
+		values ('제목입니다.', '내용입니다.', now(), 'admin')
+```
+
+
+
+### Log4jdbc 로거 종류
+
+* jdbc.sqlonly ⇒ SQL을 출력. Prepared Statement의 경우 관련된 파라미터를 자동으로 변경해서 출력 ⇒ insert into t_board (title, contents, created_datetime, creator_id) values ('제목입니다.', '내용입니다.', now(), 'admin')
+* jdbc.resultsettable ⇒ SQL의 조회 결과를 테이블 형태로 출력
+* jdbc.sqltiming ⇒ SQL문과 해당 SQL문의 실행 시간을 밀리 세컨드 단위로 출력
+* jdbc.connection ⇒ Connection의 연결과 종료에 관련된 로그를 출력
+
+
+
+https://log4jdbc.brunorozendo.com/
+
+| logger              | description                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| jdbc.sqlonly        | Logs only SQL. SQL executed within a prepared statement is automatically shown with it's bind arguments replaced with the data bound at that position, for greatly increased readability. |
+| jdbc.sqltiming      | Logs the SQL, post-execution, including timing statistics on how long the SQL took to execute. |
+| jdbc.audit          | Logs ALL JDBC calls except for ResultSets. This is a very voluminous output, and is not normally needed unless tracking down a specific JDBC problem. |
+| jdbc.resultset      | Even more voluminous, because all calls to ResultSet objects are logged. |
+| jdbc.resultsettable | Log the jdbc results as a table. Level debug will fill in unread values in the result set. |
+| jdbc.connection     | Logs connection open and close events as well as dumping all open connection numbers. This is very useful for hunting down connection leak problems. |
+
+
+
+---
+
+
+
+```
+Application --------------------------> DB
+                       SQL
+```
+
+
+
+#### Statement
+
+쿼리를 문자열로 만들어서 실행 ⇒ 입력값에 의해서 쿼리가 원래 의도와 다른 형태로 변형되어서 실행
+
+```
+String sql = "select * from users where id = " + pid;
+Statement stmt = connection.createStatement();
+ResultSet rs = stmt.executeQuery(sql);
+```
+
+pid ← 123 or 1=1
+
+```
+String sql = "select * from users where id = 123 or 1=1";
+			:
+```
+
+
+
+#### PreparedStatement
+
+쿼리의 구조를 정의하고 정의된 구조로 실행
+
+```
+String sql = "select * from users where id = ? ";
+PreparedStatement pstmt = connection.prepareStatement(sql);
+pstmt.setInt(1, pid); ⇐ 정의된 구조를 유지하면서 값을 쿼리에 반영
+ResultSet rs = pstmt.executeQuery();
+```
+
+
+
+#### CallableStatement
+
+DB에 정의되어 있는 Stored Procedure를 호출해서 실행
+
+
+
+---
+
+
+
+logback-spring.xml
+
+```xml
+				:
+	<logger name="board" level="DEBUG" appender-ref="console" />
+	<logger name="jdbc.sqlonly" level="INFO" appender-ref="console-infolog" />
+	<logger name="jdbc.resultsettable" level="INFO" appender-ref="console-infolog" />
+	<logger name="jdbc.sqltiming" level="DEBUG" appender-ref="console-infolog" />
+				:
+```
+
+
+
+```
+2020-04-20 11:09:50,975 DEBUG [jdbc.sqltiming]  com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
 ```
 
