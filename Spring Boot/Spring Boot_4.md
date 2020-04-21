@@ -683,3 +683,188 @@ public class BoardApplication {
 
 
 
+### 컨트롤러 변경
+
+/board/src/main/java/board/controller/BoardController.java
+
+```java
+			:
+	// MultipartHttpServletRequest를 파라미터로 추가
+	// - ServletRequest를 상속받아 구현한 인터페이스
+	// - 업로드된 파일을 처리할 수 있도록 여러 가지 메서드를 제공 
+	@RequestMapping("/board/insertBoard.do")
+	public String insertBoard(BoardDto board, MultipartHttpServletRequest request) throws Exception {
+		boardService.insertBoard(board, request);
+		return "redirect:/board/openBoardList.do";
+	}
+			:
+```
+
+
+
+### 서비스 변경
+
+/board/src/main/java/board/service/BoardService.java
+
+```java
+public interface BoardService {
+	List<BoardDto> selectBoardList() throws Exception;
+	void insertBoard(BoardDto board, MultipartHttpServletRequest request) throws Exception;
+	BoardDto selectBoardDetail(int boardIdx) throws Exception;
+	void updateBoard(BoardDto board) throws Exception;
+	void deleteBoard(int boardIdx) throws Exception;
+}
+```
+
+
+
+/board/src/main/java/board/service/BoardServiceImpl.java
+
+```java
+@Slf4j
+@Service
+// @Transactional
+public class BoardServiceImpl implements BoardService {
+    			:
+	@Override
+	public void insertBoard(BoardDto board, MultipartHttpServletRequest request) throws Exception {
+		// boardMapper.insertBoard(board);
+		
+		// MultipartHttpServletRequest에 포함되어 있는 파일을 추출해서 처리
+		if (!ObjectUtils.isEmpty(request)) {
+			// 업로드 파일을 담고 있는 input 태그의 이름을 추출
+			// <input type="file" name="files1" ... multiple="multiple" />  <-- a.txt, b.txt, c.txt
+			// <input type="file" name="files2" ... multiple="multiple" />  <-- x.gif, y.gif, z.gif
+			// <input type="file" name="files3" ... multiple="multiple" />
+			Iterator<String> fileTagNames = request.getFileNames();  // files1, files2, files3
+			while (fileTagNames.hasNext()) {
+				String fileTagName = fileTagNames.next();  // 파일 태그 이름
+				List<MultipartFile> files = request.getFiles(fileTagName);  // a.txt, b.txt, c.txt
+				for (MultipartFile file : files) {
+					log.debug("업로드 파일 정보");
+					log.debug("- File Name    : " + file.getOriginalFilename());
+					log.debug("- File Size    : " + file.getSize());
+					log.debug("- Content Type : " + file.getContentType());
+				}				
+			}
+		}
+	}
+			:
+}
+```
+
+
+
+### 테스트
+
+다중 파일을 업로드 했을 때 콘솔 창에 아래와 같은 형태의 로그가 표시되어야 함
+
+```
+2020-04-21 09:44:38,992 DEBUG [board.aop.LoggerAspect] Serivce : board.service.BoardServiceImpl.insertBoard()
+2020-04-21 09:44:38,993 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - File Name    : 1.png
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - File Size    : 86396
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - File Name    : 2.png
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - File Size    : 117471
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - File Name    : 3.png
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - File Size    : 118002
+2020-04-21 09:44:38,994 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+```
+
+
+
+### 아래와 같이 코드를 변경해서 테스트
+
+/board/src/main/resources/templates/board/boardWrite.html
+
+```html
+			<input type="file" id="files" name="files1" multiple="multiple"/>
+			<input type="file" id="files" name="files2" multiple="multiple"/>
+			<input type="file" id="files" name="files3" multiple="multiple"/>
+```
+
+
+
+/board/src/main/java/board/service/BoardServiceImpl.java
+
+```java
+	@Override
+	public void insertBoard(BoardDto board, MultipartHttpServletRequest request) throws Exception {
+		// boardMapper.insertBoard(board);
+		
+		if (!ObjectUtils.isEmpty(request)) {
+			Iterator<String> fileTagNames = request.getFileNames();
+			while (fileTagNames.hasNext()) {
+				String fileTagName = fileTagNames.next();
+				log.debug("파일 태그 이름 : " + fileTagName);
+				List<MultipartFile> files = request.getFiles(fileTagName);
+				for (MultipartFile file : files) {
+					log.debug("업로드 파일 정보");
+					log.debug("- File Name    : " + file.getOriginalFilename());
+					log.debug("- File Size    : " + file.getSize());
+					log.debug("- Content Type : " + file.getContentType());
+				}
+			}
+		}
+	}
+```
+
+
+
+[실행결과]
+
+```
+2020-04-21 09:56:56,887 DEBUG [board.aop.LoggerAspect] Serivce : board.service.BoardServiceImpl.insertBoard()
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 파일 태그 이름 : files1
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Name    : 1.png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Size    : 86396
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Name    : 2.png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Size    : 117471
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Name    : 3.png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Size    : 118002
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 파일 태그 이름 : files2
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Name    : 4.png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Size    : 73990
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Name    : 5.png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Size    : 92013
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Name    : 6.png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - File Size    : 19016
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,892 DEBUG [board.service.BoardServiceImpl] 파일 태그 이름 : files3
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - File Name    : 7.png
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - File Size    : 21325
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - File Name    : 8.png
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - File Size    : 32219
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] 업로드 파일 정보
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - File Name    : 9.png
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - File Size    : 78558
+2020-04-21 09:56:56,893 DEBUG [board.service.BoardServiceImpl] - Content Type : image/png
+```
+
+
+
+boardWrite.html을 원래대로 변경
+
+```html
+			<input type="file" id="files" name="files" multiple="multiple"/>
+```
+
