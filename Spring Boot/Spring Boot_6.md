@@ -1312,7 +1312,7 @@ JpaRepository ⇒ JPA에 특화된 기능까지 추가된 인터페이스
 
 ```java
 <S extends T> S save(S entity);                             // 주어진 엔티티를 저장
-<S extends T> Iterable<S> saveAll(Iterable<S> entities);	// 주어진 엔티티 목록을 저장
+<S extends T> Iterable<S> saveAll(Iterable<S> entities);    // 주어진 엔티티 목록을 저장
 Optional<T> findById(ID id);                                // 주어진 ID로 식별된 엔티티를 반환 (상세 조회)
 boolean existsById(ID id);                                  // 주어진 ID로 식별된 엔티티의 존재 여부를 반환
 Iterable<T> findAll();                                      // 모든 엔티티를 반환
