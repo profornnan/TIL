@@ -597,3 +597,540 @@ update user set role = 'USER';
 
 
 
+## 데이터베이스에 세션 정보를 저장하도록 수정
+
+* HTTP
+  * Request(요청), Response(응답) 구조
+  * Stateless (연결을 유지하지 않음)
+
+
+
+* 정보의 표현 방법과 프로토콜
+  * 정보의 표현 방법 : html
+    * 데이터를 태그로 감싸서 주겠다. markup language
+  * 프로토콜 : http
+
+
+
+![image-20200504103242749](images/image-20200504103242749.png)
+
+
+
+처음에는 연결을 먼저 한다. 3-way handshaking
+
+웹 서버는 연결된 통로를 통해서 들어오는 요청을 처리할 자식 프로세스를 만든다.
+
+데이터(요청)가 오면 ACK를 보낸다. (자식 프로세스는 그 요청에 맞는 데이터를 만들고 응답을 보낸다.)
+
+클라이언트가 서버로부터 요청한 정보를 모두 응답받았다면 연결을 종료한다. 4-way handshaking
+
+
+
+```
+Client                                                      Server
+                   GET /index.html HTTP/1.0
+               --------------------------------->
+
+                   HTTP/1.0 200 OK
+index.html     <---------------------------------
+                   Set-Cookie: role=user; name=hong; age=24;
+
+                   GET /main.html HTTP/1.0
+               --------------------------------->
+                   Cookie: role=user; name=hong; age=24;
+```
+
+
+
+Cookie ⇒ Stateless 한 HTTP 프로토콜의 한계를 개선
+
+→ 요청/응답 헤더를 통해서 정보가 전달 ⇒ 쉽게 노출되고 위변가 가능 단점 ⇒ 세션을 통해서 보완
+
+
+
+```
+                   login.do?id=abc&pw=123 
+Client         ---------------------------------------->   Server → SID : 1234234 
+                                                                         - name: hong
+                                                                         - age: 24
+main           <----------------------------------------                 - role: user
+                   Set-Cookie: SID=1234234
+
+                --------------------------------------->
+                   Cookie: SID=1234234
+```
+
+
+
+WAS 세션을 이용
+
+DB에 저장
+
+메모리 DB를 이용
+
+
+
+### spring-session-jdbc 의존성 등록
+
+/springboot/build.gradle
+
+```gradle
+		:
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	compile 'org.projectlombok:lombok'
+	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
+    compile 'com.h2database:h2'
+    compile 'org.springframework.boot:spring-boot-starter-mustache'
+    compile 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    compile 'org.springframework.session:spring-session-jdbc'
+}
+		:
+```
+
+
+
+Refresh Gradle Project
+
+
+
+### 세션 저장소로 JDBC를 지정
+
+/springboot/src/main/resources/application.properties
+
+```properties
+		:
+spring.session.store-type=jdbc
+```
+
+
+
+### 재기동 후 세션 정보를 저장 용도의 테이블 생성을 확인
+
+http://localhost:8080/h2-console
+
+![image-20200504104418095](images/image-20200504104418095.png)
+
+
+
+```sql
+select * from spring_session;
+```
+
+
+
+## 네이버 로그인 기능 추가
+
+### 네이버 API 등록
+
+https://developers.naver.com/apps/#/register
+
+
+
+![image-20200504105200482](images/image-20200504105200482.png)
+
+
+
+애플리케이션 이름 : springboot
+
+사용 API : 네아로(네이버 아이디로 로그인)
+
+제공 정보 : 회원이름, 이메일, 프로필 사진
+
+
+
+![image-20200504105320139](images/image-20200504105320139.png)
+
+
+
+서비스 URL : http://localhost:8080
+
+Callback URL : http://localhost:8080/login/oauth2/code/naver
+
+등록하기 버튼 클릭
+
+
+
+Client ID, Client Secret 확인
+
+
+
+### 등록 정보를 설정
+
+https://developers.naver.com/docs/login/profile/
+
+
+
+/springboot/src/main/resources/application-oauth.properties
+
+```properties
+spring.security.oauth2.client.registration.google.client-id=
+spring.security.oauth2.client.registration.google.client-secret=
+spring.security.oauth2.client.registration.google.scope=profile,email
+
+spring.security.oauth2.client.registration.naver.client-id=
+spring.security.oauth2.client.registration.naver.client-secret=
+spring.security.oauth2.client.registration.naver.scope=name,email,profile_image
+spring.security.oauth2.client.registration.naver.redirect-uri={baseUrl}/{action}/oauth2/code/{registrationId}
+spring.security.oauth2.client.registration.naver.authorization-grant-type=authorization_code
+spring.security.oauth2.client.registration.naver.client-name=Naver
+
+spring.security.oauth2.client.provider.naver.authorization-uri=https://nid.naver.com/oauth2.0/authorize
+spring.security.oauth2.client.provider.naver.token-uri=https://nid.naver.com/oauth2.0/token
+spring.security.oauth2.client.provider.naver.user-info-uri=https://openapi.naver.com/v1/nid/me
+spring.security.oauth2.client.provider.naver.user-name-attribute=response
+```
+
+
+
+### OAuthAttributes 클래스에 네이버인 경우 사용할 코드를 추가
+
+/springboot/src/main/java/springboot/config/auth/dto/OAuthAttributes.java
+
+```java
+		:
+	public static OAuthAttributes of(String registrationId, 
+			String userNameAttributeName, Map<String, Object> attributes) {
+		// 네이버인 경우
+		if ("naver".contentEquals(registrationId)) {
+			return ofNaver("id", attributes);
+		}
+		return ofGoogle(userNameAttributeName, attributes);
+	}
+	
+	public static OAuthAttributes ofNaver(String userNameAttributeName, Map<String, Object> attributes) {
+		
+		Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+		
+		return OAuthAttributes.builder()
+				.name((String)response.get("name"))
+				.email((String)response.get("email"))
+				.picture((String)response.get("profile_image"))
+				.attributes(response)
+				.nameAttributeKey(userNameAttributeName)
+				.build();
+	}
+		:
+```
+
+
+
+### 네이버 로그인 버튼 추가
+
+/springboot/src/main/resources/templates/index.mustache
+
+```mustache
+					:
+				{{^loginUserName}} 
+					<a href="/oauth2/authorization/google" class="btn btn-success active" role="button">Google</a>
+					<a href="/oauth2/authorization/naver" class="btn btn-secondary active" role="button">Naver</a>
+				{{/loginUserName}}
+					:
+```
+
+
+
+### 네이버와 구글이 반환하는 데이터 구조를 확인
+
+/springboot/src/main/java/springboot/config/auth/dto/OAuthAttributes.java
+
+```java
+import net.minidev.json.JSONObject;
+
+@Getter
+public class OAuthAttributes {
+			:
+	public static JSONObject getJsonStringFromMap(Map<String, Object> map) {
+		JSONObject jsonObject = new JSONObject();
+		for (Map.Entry<String, Object> entry : map.entrySet()) {
+			String key = entry.getKey();
+			Object value = entry.getValue();
+			jsonObject.put(key, value);
+		}
+
+		return jsonObject;
+	}
+	
+	public static OAuthAttributes of(String registrationId, 
+			String userNameAttributeName, Map<String, Object> attributes) {
+		
+		System.out.println(registrationId);
+		System.out.println(getJsonStringFromMap(attributes));
+		
+		// 네이버인 경우
+		if ("naver".contentEquals(registrationId)) {
+			return ofNaver("id", attributes);
+		}
+		return ofGoogle(userNameAttributeName, attributes);
+	}
+			:
+}
+```
+
+
+
+네이버와 구글이 반환하는 데이터 구조 비교
+
+
+
+
+
+## EC2(Elastic Compute Cloud) 인스턴스 생성
+
+https://aws.amazon.com/ko/console/
+
+서비스 => EC2 => 인스턴스 시작
+
+* 단계 1: Amazon Machine Image(AMI) 선택
+  * Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
+* 단계 2: 인스턴스 유형 선택
+  * t2.micro
+* 단계 3: 인스턴스 세부 정보 구성
+  * 인스턴스 개수 : 1
+  * 네트워크 : 기본값
+  * 서브넷 : 기본 설정 없음(가용 영역의 기본 서브넷)
+  * 퍼블릭 IP 자동 할당 : 서브넷 사용 설정(활성화)
+* 단계 4: 스토리지 추가
+  * 크기(GiB) : 30
+  * 볼륨 유형 : 범용 SSD(gp2)
+* 단계 5: 태그 추가
+  * 태그: 검색을 할 때 사용되는 값
+  * 키 : Name
+  * 값 : springboot-webservice
+* 단계 6: 보안 그룹 구성
+  * 보안 그룹 생성
+  * 보안 그룹 이름 : springboot-webservice-ec2
+  * SSH - TCP - 22 - 내 IP
+  * HTTPS - TCP - 443 - 사용자 지정
+  * 사용자 지정 TCP 규칙 - TCP - 8080 - 사용자 지정
+* 단계 7: 인스턴스 시작 검토
+* 기존 키 페어 선택 또는 새 키 페어 생성
+  * 새 키 페어 생성
+  * 키 페어 이름 : springboot-webservice
+  * 키 페어 다운로드
+  * 인스턴스 시작
+
+
+
+대칭키 : 암호화에 사용되는 암호화 키와 복호화에 사용되는 암호화 키가 동일. 키 분배 및 관리에 문제가 있다.
+
+비대칭키 : 개인키(특정 사람만이 가진다)와 공개키(누구나 가질 수 있다). 개인키로 암호화 한 정보는 그 쌍이 되는 공개키로만 복호화 가능하고, 반대로 공개키로 암호화 한 정보는 그 쌍이 되는 개인키로만 복호화가 가능. 키 관리의 문제가 사라진다. 속도가 느리다.
+
+
+
+키 교환
+
+서버와 클라이언트가 안전한 대칭키 방식의 보안 통신을 하기 위해서는 가지고 있는 키를 상호 교환해야 할 필요가 있다. 그 때 비대칭키가 사용된다.
+
+SSH : 원격지에 있는 컴퓨터를 안전하게 제어하기 위한 프로토콜. 서버와 클라이언트 간의 보안 통신
+
+
+
+## 탄력적 IP(Elastic IP) 주소
+
+AWS의 고정 IP 서비스
+
+**탄력적 IP를 생성하고 EC2 서버에 연결하지 않으면 비용이 발생**
+
+
+
+네트워크 및 보안 => 탄력적 IP => 탄력적 IP 주소 할당
+
+Amazon의 IPv4 주소 풀 => 할당
+
+Actions => 탄력적 IP 주소 연결
+
+리소스 유형 : 인스턴스
+
+생성한 인스턴스 선택, 프라이빗 IP 주소 선택 => 연결
+
+
+
+## EC2 서버에 접속
+
+Xshell 5 이용
+
+
+
+**새로 만들기**
+
+**연결**
+
+이름 : springboot-webservice
+
+호스트 : 탄력적 IP 입력
+
+포트 번호 : 22
+
+
+
+**사용자 인증**
+
+방법 : Public Key
+
+사용자 이름 : ec2-user
+
+사용자 키 => 찾아보기 => 가져오기 => 생성한 키 페어 선택(.pem 파일)
+
+
+
+## Java8 설치
+
+```bash
+[ec2-user@ip-172-31-19-132 ~]$ java -version
+java version "1.7.0_251"
+OpenJDK Runtime Environment (amzn-2.6.21.0.82.amzn1-x86_64 u251-b02)
+OpenJDK 64-Bit Server VM (build 24.251-b02, mixed mode)
+[ec2-user@ip-172-31-19-132 ~]$ sudo yum install -y java-1.8.0-openjdk-devel.x86_64
+		:
+Dependency Installed:
+  avahi-libs.x86_64 0:0.6.25-12.17.amzn1                                             
+  cups-libs.x86_64 1:1.4.2-67.21.amzn1                                               
+  gnutls.x86_64 0:2.12.23-21.18.amzn1                                                
+  java-1.8.0-openjdk.x86_64 1:1.8.0.242.b08-0.50.amzn1                               
+  java-1.8.0-openjdk-headless.x86_64 1:1.8.0.242.b08-0.50.amzn1                      
+  jbigkit-libs.x86_64 0:2.0-11.4.amzn1                                               
+  libtiff.x86_64 0:4.0.3-32.34.amzn1                                                 
+  lksctp-tools.x86_64 0:1.0.10-7.7.amzn1                                             
+
+Complete!
+```
+
+sudo는 일시적으로 관리자 권한을 가진다. 해당 명령어가 실행되는 동안만 관리자 권한을 가진다.
+
+su는 관리자 권한을 획득한다. 계정을 변경하기 전까지는 계속 관리자 권한이다.
+
+
+
+```bash
+[ec2-user@ip-172-31-19-132 ~]$ sudo /usr/sbin/alternatives --config java
+
+There are 2 programs which provide 'java'.
+
+  Selection    Command
+-----------------------------------------------
+*+ 1           /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java
+   2           /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+
+Enter to keep the current selection[+], or type selection number: 2
+[ec2-user@ip-172-31-19-132 ~]$ sudo yum remove java-1.7.0-openjdk
+Loaded plugins: priorities, update-motd, upgrade-helper
+Resolving Dependencies
+--> Running transaction check
+---> Package java-1.7.0-openjdk.x86_64 1:1.7.0.251-2.6.21.0.82.amzn1 will be erased
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+=====================================================================================
+ Package               Arch      Version                          Repository    Size
+=====================================================================================
+Removing:
+ java-1.7.0-openjdk    x86_64    1:1.7.0.251-2.6.21.0.82.amzn1    installed     91 M
+
+Transaction Summary
+=====================================================================================
+Remove  1 Package
+
+Installed size: 91 M
+Is this ok [y/N]: y
+Downloading packages:
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+  Erasing    : 1:java-1.7.0-openjdk-1.7.0.251-2.6.21.0.82.amzn1.x86_64           1/1 
+  Verifying  : 1:java-1.7.0-openjdk-1.7.0.251-2.6.21.0.82.amzn1.x86_64           1/1 
+
+Removed:
+  java-1.7.0-openjdk.x86_64 1:1.7.0.251-2.6.21.0.82.amzn1                            
+
+Complete!
+[ec2-user@ip-172-31-19-132 ~]$ java -version
+openjdk version "1.8.0_242"
+OpenJDK Runtime Environment (build 1.8.0_242-b08)
+OpenJDK 64-Bit Server VM (build 25.242-b08, mixed mode)
+```
+
+
+
+## 한국 표준 시간대(KST)로 타임존을 변경
+
+```bash
+[ec2-user@springboot-webservice ~]$ cat /etc/localtime
+TZif2UTCTZif2UTC
+UTC0
+[ec2-user@springboot-webservice ~]$ sudo rm /etc/localtime
+[ec2-user@springboot-webservice ~]$ sudo ln -s /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+```
+
+ln : 파일의 링크를 생성할 때 사용. 파일 연결 명령어
+
+
+
+## 호스트네임 변경
+
+MAC Address
+
+모든 네트워크 카드는 서로 다른 MAC Address를 가진다. 48bit
+
+
+
+hostname은 일반적으로 동일 네트워크 내의 단말들을 식별하기 위한 것이다.
+
+동일 네트워크를 벗어나는 개념이 domain
+
+
+
+```bash
+[ec2-user@ip-172-31-19-132 ~]$ sudo vim /etc/sysconfig/network
+```
+
+
+
+```bash
+NETWORKING=yes
+# HOSTNAME=localhost.localdomain
+HOSTNAME=springboot-webservice
+NOZEROCONF=yes
+```
+
+
+
+```bash
+[ec2-user@ip-172-31-19-132 ~]$ sudo vim /etc/hosts
+```
+
+
+
+```bash
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost6 localhost6.localdomain6
+127.0.0.1   springboot-webservice
+```
+
+
+
+```bash
+[ec2-user@ip-172-31-19-132 ~]$ sudo reboot
+```
+
+
+
+## Xshell 5로 재접속
+
+```bash
+[ec2-user@springboot-webservice ~]$ 
+```
+
+* ec2-user : 사용자 계정
+* springboot-webservice : 호스트 명 or IP
+* ~ : ec2-user의 홈 디렉터리
+* $ : 일반 유저
+* \# : 관리자 유저
+
+
