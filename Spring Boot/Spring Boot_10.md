@@ -1134,3 +1134,999 @@ NOZEROCONF=yes
 * \# : 관리자 유저
 
 
+
+## RDS(Relational Database Service) 설정
+
+https://aws.amazon.com/ko/console/
+
+서비스 => RDS => 데이터베이스 생성
+
+* 데이터베이스 생성
+  * 데이터베이스 생성 방식 선택 : 표준 생성
+  * 엔진 옵션 : MariaDB
+  * 템플릿 : 프리 티어
+  * 설정
+    * DB 인스턴스 식별자 : springboot-webservice
+    * 마스터 사용자 이름, 마스터 암호, 암호 확인 입력
+  * 스토리지
+    * 스토리지 유형 : 범용(SSD)
+    * 할당된 스토리지 : 20
+  * 연결
+    * 추가 연결 구성
+      * 퍼블릭 액세스 가능 : 예
+  * 데이터베이스 생성
+
+
+
+파라미터 그룹 => 파라미터 그룹 생성
+
+* 파라미터 그룹 세부 정보
+  * 파라미터 그룹 패밀리 : mariadb 10.2
+  * 그룹 이름 : springboot-webservice
+  * 설명 : springboot-webservice
+
+
+
+springboot-webservice 클릭 => 파라미터 편집
+
+* time_zone 검색 => Asia/Seoul
+* character_set 검색 => 전부 utf8mb4 로 설정 (6개)
+* collation_connection과 collation_server 항목의 값을 utf8mb4_unicode_ci 로 설정
+* max_connections 검색 => 150
+* 변경 사항 저장
+
+
+
+데이터베이스 => springboot-webservice 클릭 => 수정
+
+* 데이터베이스 옵션
+  * DB 파라미터 그룹 : springboot-webservice
+
+계속 => 즉시 적용 => DB 인스턴스 수정
+
+
+
+데이터베이스 => springboot-webservice 클릭 => VPC 보안 그룹 클릭
+
+인바운드 규칙 => 인바운드 규칙 편집
+
+규칙 추가 => MYSQL/Aurora - TCP - 3306 - 사용자 지정 - EC2에 사용된 보안 그룹의 그룹 ID
+
+규칙 추가 => MYSQL/Aurora - TCP - 3306 - 내 IP
+
+규칙 저장
+
+
+
+---
+
+
+
+MySQL Workbench 실행
+
+![image-20200506104154853](images/image-20200506104154853.png)
+
+MySQL Connections 옆 `+` 버튼 클릭
+
+
+
+![image-20200506104536033](images/image-20200506104536033.png)
+
+Connection Name: springboot-webservice
+
+Connection Method: Standard(TCP/IP)
+
+Hostname: RDS 엔드포인트
+
+Port: 3306
+
+Username: Maria DB 설치 시 입력한 값
+
+Password: Maria DB 설치 시 입력한 값
+
+
+
+![image-20200506104644684](images/image-20200506104644684.png)
+
+
+
+Continue Anyway
+
+
+
+## EC2 서버에 프로젝트 배포
+
+### EC2에 깃 설치
+
+```bash
+[ec2-user@springboot-webservice ~]$ sudo yum install git
+Loaded plugins: priorities, update-motd, upgrade-helper
+amzn-main                                                     | 2.1 kB  00:00:00     
+amzn-updates                                                  | 2.5 kB  00:00:00     
+Resolving Dependencies
+--> Running transaction check
+---> Package git.x86_64 0:2.14.6-1.62.amzn1 will be installed
+--> Processing Dependency: perl-Git = 2.14.6-1.62.amzn1 for package: git-2.14.6-1.62.amzn1.x86_64
+--> Processing Dependency: perl(Term::ReadKey) for package: git-2.14.6-1.62.amzn1.x86_64
+--> Processing Dependency: perl(Git::I18N) for package: git-2.14.6-1.62.amzn1.x86_64
+--> Processing Dependency: perl(Git) for package: git-2.14.6-1.62.amzn1.x86_64
+--> Processing Dependency: perl(Error) for package: git-2.14.6-1.62.amzn1.x86_64
+--> Running transaction check
+---> Package perl-Error.noarch 1:0.17020-2.9.amzn1 will be installed
+---> Package perl-Git.noarch 0:2.14.6-1.62.amzn1 will be installed
+---> Package perl-TermReadKey.x86_64 0:2.30-20.9.amzn1 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+=====================================================================================
+ Package               Arch        Version                   Repository         Size
+=====================================================================================
+Installing:
+ git                   x86_64      2.14.6-1.62.amzn1         amzn-updates       12 M
+Installing for dependencies:
+ perl-Error            noarch      1:0.17020-2.9.amzn1       amzn-main          33 k
+ perl-Git              noarch      2.14.6-1.62.amzn1         amzn-updates       69 k
+ perl-TermReadKey      x86_64      2.30-20.9.amzn1           amzn-main          33 k
+
+Transaction Summary
+=====================================================================================
+Install  1 Package (+3 Dependent packages)
+
+Total download size: 12 M
+Installed size: 29 M
+Is this ok [y/d/N]: y
+Downloading packages:
+(1/4): perl-TermReadKey-2.30-20.9.amzn1.x86_64.rpm            |  33 kB  00:00:00     
+(2/4): perl-Error-0.17020-2.9.amzn1.noarch.rpm                |  33 kB  00:00:00     
+(3/4): perl-Git-2.14.6-1.62.amzn1.noarch.rpm                  |  69 kB  00:00:00     
+(4/4): git-2.14.6-1.62.amzn1.x86_64.rpm                       |  12 MB  00:00:03     
+-------------------------------------------------------------------------------------
+Total                                                   3.5 MB/s |  12 MB  00:03     
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+  Installing : 1:perl-Error-0.17020-2.9.amzn1.noarch                             1/4 
+  Installing : perl-TermReadKey-2.30-20.9.amzn1.x86_64                           2/4 
+  Installing : git-2.14.6-1.62.amzn1.x86_64                                      3/4 
+  Installing : perl-Git-2.14.6-1.62.amzn1.noarch                                 4/4 
+  Verifying  : 1:perl-Error-0.17020-2.9.amzn1.noarch                             1/4 
+  Verifying  : git-2.14.6-1.62.amzn1.x86_64                                      2/4 
+  Verifying  : perl-Git-2.14.6-1.62.amzn1.noarch                                 3/4 
+  Verifying  : perl-TermReadKey-2.30-20.9.amzn1.x86_64                           4/4 
+
+Installed:
+  git.x86_64 0:2.14.6-1.62.amzn1                                                     
+
+Dependency Installed:
+  perl-Error.noarch 1:0.17020-2.9.amzn1        perl-Git.noarch 0:2.14.6-1.62.amzn1   
+  perl-TermReadKey.x86_64 0:2.30-20.9.amzn1   
+
+Complete!
+```
+
+
+
+### 작업 디렉터리 생성
+
+```bash
+[ec2-user@springboot-webservice ~]$ mkdir ~/app && mkdir ~/app/step1
+[ec2-user@springboot-webservice ~]$ cd ~/app/step1
+[ec2-user@springboot-webservice step1]$ 
+```
+
+
+
+### 소스 코드를 git hub에 등록
+
+https://github.com/
+
+Repositories => New
+
+
+
+Repository name : springboot-webservice
+
+Public
+
+Create repository
+
+
+
+Quick setup 에 있는 주소 복사
+
+![image-20200506121213500](images/image-20200506121213500.png)
+
+
+
+![image-20200506121854484](images/image-20200506121854484.png)
+
+Use or create... 체크
+
+Create Repository 클릭
+
+Finish
+
+
+
+![image-20200506121958631](images/image-20200506121958631.png)
+
+
+
+`++` 버튼 클릭
+
+Commit Message에 '최초 등록' 입력
+
+Commit and Push...
+
+
+
+![image-20200506122343636](images/image-20200506122343636.png)
+
+앞에서 복사했던 주소 붙여넣기
+
+
+
+![image-20200506122432100](images/image-20200506122432100.png)
+
+
+
+![image-20200506122507653](images/image-20200506122507653.png)
+
+
+
+![image-20200506131756064](images/image-20200506131756064.png)
+
+
+
+### git clone (@ec2)
+
+```bash
+[ec2-user@springboot-webservice step1]$ git clone https://github.com/profornnan/springboot-webservice.git
+Cloning into 'springboot-webservice'...
+remote: Enumerating objects: 122, done.
+remote: Counting objects: 100% (122/122), done.
+remote: Compressing objects: 100% (101/101), done.
+remote: Total 122 (delta 6), reused 122 (delta 6), pack-reused 0
+Receiving objects: 100% (122/122), 100.54 KiB | 214.00 KiB/s, done.
+Resolving deltas: 100% (6/6), done.
+```
+
+
+
+```bash
+[ec2-user@springboot-webservice step1]$ cd springboot-webservice
+[ec2-user@springboot-webservice springboot-webservice]$ ll
+total 32
+drwxrwxr-x 4 ec2-user ec2-user 4096 May  6 13:21 bin
+-rw-rw-r-- 1 ec2-user ec2-user  920 May  6 13:21 build.gradle
+drwxrwxr-x 3 ec2-user ec2-user 4096 May  6 13:21 gradle
+-rw-rw-r-- 1 ec2-user ec2-user 5764 May  6 13:21 gradlew
+-rw-rw-r-- 1 ec2-user ec2-user 2953 May  6 13:21 gradlew.bat
+-rw-rw-r-- 1 ec2-user ec2-user   32 May  6 13:21 settings.gradle
+drwxrwxr-x 4 ec2-user ec2-user 4096 May  6 13:21 src
+```
+
+
+
+### gradlew 실행 속성 부여
+
+```bash
+[ec2-user@springboot-webservice springboot-webservice]$ sudo chmod +x gradlew
+[ec2-user@springboot-webservice springboot-webservice]$ ll
+total 32
+drwxrwxr-x 4 ec2-user ec2-user 4096 May  6 13:21 bin
+-rw-rw-r-- 1 ec2-user ec2-user  920 May  6 13:21 build.gradle
+drwxrwxr-x 3 ec2-user ec2-user 4096 May  6 13:21 gradle
+-rwxrwxr-x 1 ec2-user ec2-user 5764 May  6 13:21 gradlew
+-rw-rw-r-- 1 ec2-user ec2-user 2953 May  6 13:21 gradlew.bat
+-rw-rw-r-- 1 ec2-user ec2-user   32 May  6 13:21 settings.gradle
+drwxrwxr-x 4 ec2-user ec2-user 4096 May  6 13:21 src
+```
+
+
+
+### gradlew 실행
+
+```bash
+[ec2-user@springboot-webservice springboot-webservice]$ ./gradlew
+Downloading https://services.gradle.org/distributions/gradle-6.3-bin.zip
+.........10%..........20%..........30%.........40%..........50%..........60%.........70%..........80%..........90%..........100%
+
+Welcome to Gradle 6.3!
+
+Here are the highlights of this release:
+ - Java 14 support
+ - Improved error messages for unexpected failures
+
+For more details see https://docs.gradle.org/6.3/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Task :help
+
+Welcome to Gradle 6.3.
+
+To run a build, run gradlew <task> ...
+
+To see a list of available tasks, run gradlew tasks
+
+To see a list of command-line options, run gradlew --help
+
+To see more detail about a task, run gradlew help --task <task>
+
+For troubleshooting, visit https://help.gradle.org
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 7.0.
+Use '--warning-mode all' to show the individual deprecation warnings.
+See https://docs.gradle.org/6.3/userguide/command_line_interface.html#sec:command_line_warnings
+
+BUILD SUCCESSFUL in 58s
+1 actionable task: 1 executed
+```
+
+
+
+### 프로젝트 빌드
+
+```bash
+[ec2-user@springboot-webservice springboot-webservice]$ ./gradlew build
+```
+
+
+
+### 롬복 클래스 관련 오류 해결
+
+getter(), builder() 등에서 발생하는 오류를 해결
+
+
+
+/springboot/build.gradle
+
+```gradle
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	compile 'org.projectlombok:lombok'
+	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
+	compile 'com.h2database:h2'
+	compile 'org.springframework.boot:spring-boot-starter-mustache'
+	compile 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	compile 'org.springframework.session:spring-session-jdbc'
+	
+	annotationProcessor 'org.projectlombok:lombok'
+}
+```
+
+
+
+### 테스트 코드 오류 해결
+
+* 테스트 용 application.properties 설정
+  * 스프링 시큐리티 적용 전에는 /api/v1/** 호출이 가능
+  * 스프링 시큐리티 적용 후에는 인증 받은 사용자만 호출이 가능
+  * 테스트 코드에는 인증한 사용자가 호출하는 것처럼 동작하도록 수정
+
+
+
+```
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'securityConfig' defined in file [D:\springboot\bin\main\springboot\config\auth\SecurityConfig.class]: Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'springboot.config.auth.CustomOAuth2UserService' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+```
+
+
+
+* appication-oauth.properties 파일의 내용을 읽지 못 해서 CustomOAuth2UserService 빈을 생성하지 못해서 발생하는 오류
+* 테스트 환경(/src/test)에 application.properties 파일이 존재하지 않으면 실행 환경(/src/main)에 있는 application.properties 파일만 참조
+* 개발 환경 전용의 설정 파일을 생성
+
+
+
+![image-20200506140842944](images/image-20200506140842944.png)
+
+
+
+/springboot/src/test/resources/application.properties
+
+```properties
+#spring.profiles.include=oauth
+
+spring.jpa.show-sql=true
+spring.h2.console.enabled=true
+spring.session.store-type=jdbc
+
+spring.security.oauth2.client.registration.google.client-id=
+spring.security.oauth2.client.registration.google.client-secret=
+spring.security.oauth2.client.registration.google.scope=profile,email
+```
+
+
+
+### CustomOAuth2UserService 스캔 오류를 수정
+
+/springboot/src/test/java/springboot/web/HelloControllerTest.java
+
+```java
+package springboot.web;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+import springboot.config.auth.SecurityConfig;
+
+// 스프링부트 테스트와 JUnit 사이에 연결자 역할
+@RunWith(SpringRunner.class)
+// @Controller, @ControllerAdvice 와 같은 애노테이션을 사용할 수 있도록 지원
+@WebMvcTest(controllers = HelloController.class, 
+excludeFilters = {
+		@ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class)
+	}
+)
+public class HelloControllerTest {
+    			:
+}
+```
+
+
+
+### spring-security-test를 추가
+
+/springboot/build.gradle
+
+```gradle
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	compile 'org.projectlombok:lombok'
+	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
+	compile 'com.h2database:h2'
+	compile 'org.springframework.boot:spring-boot-starter-mustache'
+	compile 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	compile 'org.springframework.session:spring-session-jdbc'
+	
+	testCompile 'org.springframework.security:spring-security-test'
+	
+	annotationProcessor 'org.projectlombok:lombok'
+}
+```
+
+Refresh Gradle Project
+
+
+
+### 인증한 것 처럼 처리하는 @WithMockUser 애노테이션을 추가
+
+/springboot/src/test/java/springboot/web/HelloControllerTest.java
+
+```java
+package springboot.web;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+import springboot.config.auth.SecurityConfig;
+
+// 스프링부트 테스트와 JUnit 사이에 연결자 역할
+@RunWith(SpringRunner.class)
+// @Controller, @ControllerAdvice 와 같은 애노테이션을 사용할 수 있도록 지원
+@WebMvcTest(controllers = HelloController.class, 
+excludeFilters = {
+		@ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class)
+	}
+)
+public class HelloControllerTest {
+
+	@Autowired
+	private MockMvc mockMvc;
+	
+	@WithMockUser(roles = "USER")
+	@Test
+	public void hello_리턴된다() throws Exception {
+		mockMvc.perform(MockMvcRequestBuilders.get("/hello"))
+			.andExpect(MockMvcResultMatchers.status().isOk())
+			.andExpect(MockMvcResultMatchers.content().string("hello"));
+	}
+	
+	@WithMockUser(roles = "USER")
+	@Test
+	public void helloDto가_리턴된다() throws Exception {
+		final String name = "hello";
+		final int amount = 1000;
+		
+		mockMvc.perform(MockMvcRequestBuilders.get("/hello/dto").param("name", name).param("amount", String.valueOf(amount)))
+		.andExpect(MockMvcResultMatchers.status().isOk())
+		.andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is(name)))
+		.andExpect(MockMvcResultMatchers.jsonPath("$.amount", Matchers.is(amount)));
+	}
+}
+```
+
+
+
+### JUNIT 테스트 시 아래 오류가 발생
+
+```
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'jpaAuditingHandler': Cannot resolve reference to bean 'jpaMappingContext' while setting constructor argument; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'jpaMappingContext': Invocation of init method failed; nested exception is java.lang.IllegalArgumentException: JPA metamodel must not be empty!
+```
+
+=> 최소 한 개 이상의 엔티티(@Entity) 클래스가 정의되어 있어야 함
+
+
+
+/springboot/src/main/java/springboot/SpringbootApplication.java
+
+```java
+package springboot;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+
+// @EnableJpaAuditing
+@SpringBootApplication
+public class SpringbootApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SpringbootApplication.class, args);
+	}
+
+}
+```
+
+
+
+![image-20200506144921729](images/image-20200506144921729.png)
+
+
+
+/springboot/src/main/java/springboot/config/JpaConfig.java
+
+```java
+package springboot.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+
+@EnableJpaAuditing
+@Configuration
+public class JpaConfig {
+
+}
+```
+
+
+
+### JUNIT 테스트
+
+/springboot/src/test/java/springboot/web/PostsApiControllerTest.java
+
+```java
+package springboot.web;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.assertj.core.api.Assertions;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import springboot.domain.posts.Posts;
+import springboot.domain.posts.PostsRepository;
+import springboot.web.dto.PostsSaveRequestDto;
+import springboot.web.dto.PostsUpdateRequestDto;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class PostsApiControllerTest {
+
+	@LocalServerPort
+	private int port;
+	
+	@Autowired
+	private TestRestTemplate restTemplate;
+	
+	@Autowired
+	private PostsRepository postsRepository;
+	
+	@Autowired
+	private WebApplicationContext context;
+	
+	private MockMvc mvc;
+	
+	@Before
+	public void setup() {
+		mvc = MockMvcBuilders.webAppContextSetup(context).apply(SecurityMockMvcConfigurers.springSecurity()).build();
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		postsRepository.deleteAll();		
+	}
+	
+	@WithMockUser(roles = "USER")
+	@Test
+	public void Posts_등록된다() throws Exception { 
+		// given
+		String title = "제목";
+		String content = "내용";
+		
+		PostsSaveRequestDto requestDto = PostsSaveRequestDto.builder().title(title).content(content).author("작성자").build();
+		String url = "http://localhost:" + port + "/api/v1/posts";
+	
+//		// when
+//		ResponseEntity<Long> responseEntity = restTemplate.postForEntity(url, requestDto, Long.class);
+//		
+//		// then
+//		Assertions.assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
+//		Assertions.assertThat(responseEntity.getBody()).isGreaterThan(0L);
+		
+		mvc.perform(MockMvcRequestBuilders.post(url).contentType(MediaType.APPLICATION_JSON_UTF8)
+				.content(new ObjectMapper().writeValueAsString(requestDto)))
+				.andExpect(MockMvcResultMatchers.status().isOk());
+		
+		List<Posts> all = postsRepository.findAll();
+		Assertions.assertThat(all.get(0).getTitle()).isEqualTo(title);
+		Assertions.assertThat(all.get(0).getContent()).isEqualTo(content);
+		
+//		Optional<Posts> optional = postsRepository.findById(responseEntity.getBody());
+//		if (optional.isPresent()) {
+//			Posts posts = optional.get();
+//			Assertions.assertThat(posts.getTitle()).isEqualTo(title);
+//			Assertions.assertThat(posts.getContent()).isEqualTo(content);
+//		}
+	}
+	
+	@WithMockUser(roles = "USER")
+	@Test
+	public void Posts_수정된다() throws Exception { 
+		// given
+		// 새 데이터를 추가
+		Posts savedPosts = postsRepository.save(Posts.builder().title("title").content("content").author("author").build());
+		Long updateId = savedPosts.getId();
+		
+		String expectedTitle = "new title";
+		String expectedContent = "new content";
+		
+		// 수정할 데이터
+		PostsUpdateRequestDto requestDto = PostsUpdateRequestDto.builder().title(expectedTitle).content(expectedContent).build();
+		// 수정 API URL
+		String url = "http://localhost:" + port + "/api/v1/posts/" + updateId;
+		
+		HttpEntity<PostsUpdateRequestDto> requestEntity = new HttpEntity<>(requestDto);
+		
+//		// when
+//		ResponseEntity<Long> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, Long.class);
+//
+//		// then
+//		Assertions.assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
+//		Assertions.assertThat(responseEntity.getBody()).isGreaterThan(0L);
+		
+		mvc.perform(MockMvcRequestBuilders.put(url).contentType(MediaType.APPLICATION_JSON_UTF8)
+				.content(new ObjectMapper().writeValueAsString(requestDto)))
+				.andExpect(MockMvcResultMatchers.status().isOk());
+		
+		List<Posts> all = postsRepository.findAll();
+		Assertions.assertThat(all.get(0).getTitle()).isEqualTo(expectedTitle);
+		Assertions.assertThat(all.get(0).getContent()).isEqualTo(expectedContent);
+	}
+}
+```
+
+
+
+=> JUnit Test 성공 확인
+
+
+
+![image-20200506150409502](images/image-20200506150409502.png)
+
+Commit and Push...
+
+
+
+---
+
+
+
+```bash
+[ec2-user@springboot-webservice springboot-webservice]$ git pull origin master
+```
+
+
+
+```bash
+[ec2-user@springboot-webservice springboot-webservice]$ ./gradlew build
+
+> Task :compileTestJava
+Note: /home/ec2-user/app/step1/springboot-webservice/src/test/java/springboot/web/PostsApiControllerTest.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :test
+2020-05-06 15:06:29.950  INFO 3705 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2020-05-06 15:06:29.955  INFO 3705 --- [extShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2020-05-06 15:06:29.955  INFO 3705 --- [extShutdownHook] .SchemaDropperImpl$DelayedDropActionImpl : HHH000477: Starting delayed evictData of schema as part of SessionFactory shut-down'
+Hibernate: drop table posts if exists
+Hibernate: drop table user if exists
+2020-05-06 15:06:29.968  INFO 3705 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2020-05-06 15:06:29.976  INFO 3705 --- [extShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2020-05-06 15:06:29.976  INFO 3705 --- [extShutdownHook] .SchemaDropperImpl$DelayedDropActionImpl : HHH000477: Starting delayed evictData of schema as part of SessionFactory shut-down'
+Hibernate: drop table posts if exists
+Hibernate: drop table user if exists
+2020-05-06 15:06:29.970  INFO 3705 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2020-05-06 15:06:29.981  INFO 3705 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
+2020-05-06 15:06:29.983  INFO 3705 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2020-05-06 15:06:30.001  INFO 3705 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2020-05-06 15:06:30.023  INFO 3705 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 7.0.
+Use '--warning-mode all' to show the individual deprecation warnings.
+See https://docs.gradle.org/6.3/userguide/command_line_interface.html#sec:command_line_warnings
+
+BUILD SUCCESSFUL in 30s
+6 actionable tasks: 5 executed, 1 up-to-date
+```
+
+
+
+### 배포 파일 생성 확인
+
+
+
+```bash
+[ec2-user@springboot-webservice springboot-webservice]$ cd ./build/libs/
+[ec2-user@springboot-webservice libs]$ ls
+springboot-0.0.1-SNAPSHOT.war
+```
+
+
+
+### 배포 파일 실행
+
+```bash
+[ec2-user@springboot-webservice libs]$ java -jar ./springboot-0.0.1-SNAPSHOT.war
+```
+
+
+
+### 브라우저를 이용해서 접속
+
+EC2 콘솔에서 퍼블릭 IP 또는 퍼블릭 DNS 확인
+
+
+
+IPv4 퍼블릭 IP:8080
+
+![image-20200506155645093](images/image-20200506155645093.png)
+
+
+
+### 배포 스크립트 작성
+
+```bash
+[ec2-user@springboot-webservice libs]$ ^C
+[ec2-user@springboot-webservice libs]$ cd ~/app/step1
+[ec2-user@springboot-webservice step1]$ vim deploy.sh
+```
+
+
+
+```bash
+REPOSITORY=/home/ec2-user/app/step1
+PROJECT_NAME=springboot-webservice
+
+cd $REPOSITORY/$PROJECT_NAME/
+
+echo "> git pull"
+git pull
+
+echo "> 프로젝트 빌드"
+./gradlew build
+
+echo "> $REPOSITORY 디렉터리로 이동"
+cd $REPOSITORY
+
+echo "> 배포 파일 복사"
+cp $REPOSITORY/$PROJECT_NAME/build/libs/*.war $REPOSITORY/
+
+echo "> 구동 중인 애플리케이션 PID 검색"
+CURRENT_PID=$(pgrep -fl 'springboot*' | grep war | awk '{ print $1 }')
+
+echo "> 구동 중인 애플리케이션 PID : $CURRENT_PID"
+
+if [ -z "$CURRENT_PID" ]; then
+    echo "> 현재 구동 중인 애플리케이션이 없습니다."
+else
+    echo "> kill -15 $CURRENT_PID"
+    kill -15 $CURRENT_PID
+    sleep 5
+fi
+
+JAR_NAME=$(ls -tr $REPOSITORY/ | grep war | tail -n 1)
+echo "> 새 애플리케이션($JAR_NAME) 배포"
+nohup java -jar $REPOSITORY/$JAR_NAME 2>&1 &
+```
+
+
+
+### 배포 스크립트에 실행 권한을 부여
+
+```bash
+[ec2-user@springboot-webservice step1]$ chmod +x deploy.sh
+[ec2-user@springboot-webservice step1]$ ll
+total 8
+-rwxrwxr-x 1 ec2-user ec2-user  847 May  6 16:17 deploy.sh
+drwxrwxr-x 8 ec2-user ec2-user 4096 May  6 15:05 springboot-webservice
+```
+
+
+
+### 배포 스크립트 실행
+
+```bash
+[ec2-user@springboot-webservice step1]$ ./deploy.sh
+> git pull
+Already up-to-date.
+> 프로젝트 빌드
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 7.0.
+Use '--warning-mode all' to show the individual deprecation warnings.
+See https://docs.gradle.org/6.3/userguide/command_line_interface.html#sec:command_line_warnings
+
+BUILD SUCCESSFUL in 2s
+6 actionable tasks: 6 up-to-date
+> /home/ec2-user/app/step1 디렉터리로 이동
+> 배포 파일 복사
+> 구동 중인 애플리케이션 PID 검색
+> 구동 중인 애플리케이션 PID : 
+> 현재 구동 중인 애플리케이션이 없습니다.
+> 새 애플리케이션(springboot-0.0.1-SNAPSHOT.war) 배포
+[ec2-user@springboot-webservice step1]$ nohup: appending output to ‘nohup.out’
+```
+
+
+
+### 브라우저를 통해서 확인
+
+IPv4 퍼블릭 IP:8080
+
+
+
+### 배포 테스트
+
+이클립스에서 코드 수정 ⇒ git push ⇒ EC2에서 deploy.sh 실행 ⇒ 브라우저를 통해서 변경 내용 확인
+
+
+
+/springboot/src/main/resources/templates/index.mustache
+
+```mustache
+{{>layout/header}}
+
+	<h1>스프링 부트로 시작하는 웹 서비스 - 수정</h1>
+	<div class="col-md-12">
+		<div class="row">
+			<div class="col-md-6">
+				<a href="/posts/save" role="button" class="btn btn-primary">글 등록</a>
+							:
+```
+
+
+
+![image-20200506163451024](images/image-20200506163451024.png)
+
+
+
+```bash
+[ec2-user@springboot-webservice step1]$ ./deploy.sh
+```
+
+
+
+![image-20200506163830487](images/image-20200506163830487.png)
+
+
+
+
+
+### application-oauth.properties 파일을 ignore 처리
+
+![image-20200506172117567](images/image-20200506172117567.png)
+
+
+
+### application-oauth.properties 파일을 app 디렉터리로 이전
+
+```bash
+[ec2-user@springboot-webservice resources]$ pwd
+/home/ec2-user/app/step1/springboot-webservice/src/main/resources
+[ec2-user@springboot-webservice resources]$ mv ./application-oauth.properties /home/ec2-user/app/
+[ec2-user@springboot-webservice resources]$ ll
+total 12
+-rw-rw-r-- 1 ec2-user ec2-user  119 May  6 13:21 application.properties
+drwxrwxr-x 3 ec2-user ec2-user 4096 May  6 13:21 static
+drwxrwxr-x 3 ec2-user ec2-user 4096 May  6 16:35 templates
+[ec2-user@springboot-webservice resources]$ ll /home/ec2-user/app/
+total 8
+-rw-rw-r-- 1 ec2-user ec2-user 1163 May  6 13:21 application-oauth.properties
+drwxrwxr-x 3 ec2-user ec2-user 4096 May  6 16:25 step1
+```
+
+
+
+### 애플리케이션이 실행될 때 application-oauth.properties 파일을 참조하도록 deploy.sh을 수정
+
+```bash
+[ec2-user@springboot-webservice step1]$ pwd
+/home/ec2-user/app/step1
+[ec2-user@springboot-webservice step1]$ ll
+total 43892
+-rwxrwxr-x 1 ec2-user ec2-user      848 May  6 16:24 deploy.sh
+-rw------- 1 ec2-user ec2-user    23005 May  6 16:37 nohup.out
+-rw-rw-r-- 1 ec2-user ec2-user 44911773 May  6 16:37 springboot-0.0.1-SNAPSHOT.war
+drwxrwxr-x 8 ec2-user ec2-user     4096 May  6 16:35 springboot-webservice
+[ec2-user@springboot-webservice step1]$ vi deploy.sh
+```
+
+
+
+```bash
+						:
+nohup java -jar \
+  -Dspring.config.location=classpath:/application.properties,/home/ec2-user/app/application-oauth.properties \
+  $REPOSITORY/$JAR_NAME 2>&1 &
+```
+
+
+
+### deploy.sh 실행 후 동작 여부 확인
+
+```bash
+[ec2-user@springboot-webservice step1]$ ./deploy.sh
+```
+
