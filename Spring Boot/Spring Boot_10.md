@@ -2130,3 +2130,277 @@ nohup java -jar \
 [ec2-user@springboot-webservice step1]$ ./deploy.sh
 ```
 
+
+
+## RDS 연동
+
+### DB 스키마 생성
+
+MySQL Workbench에서 
+
+![image-20200508213356809](images/image-20200508213356809.png)
+
+
+
+### 테이블 생성
+
+로그에 나온 내용과 다음 URL 내용을 참조해서 테이블을 생성
+
+https://github.com/spring-projects/spring-session/blob/master/spring-session-jdbc/src/main/resources/org/springframework/session/jdbc/schema-mysql.sql
+
+
+
+```mysql
+create table posts (id bigint not null auto_increment, created_date timestamp, modified_date timestamp, author varchar(255), content TEXT not null, title varchar(500) not null, primary key (id));
+create table user (id bigint not null auto_increment, created_date timestamp, modified_date timestamp, email varchar(255) not null, name varchar(255) not null, picture varchar(255), role varchar(255) not null, primary key (id));
+```
+
+
+
+```mysql
+CREATE TABLE SPRING_SESSION (
+	PRIMARY_ID CHAR(36) NOT NULL,
+	SESSION_ID CHAR(36) NOT NULL,
+	CREATION_TIME BIGINT NOT NULL,
+	LAST_ACCESS_TIME BIGINT NOT NULL,
+	MAX_INACTIVE_INTERVAL INT NOT NULL,
+	EXPIRY_TIME BIGINT NOT NULL,
+	PRINCIPAL_NAME VARCHAR(100),
+	CONSTRAINT SPRING_SESSION_PK PRIMARY KEY (PRIMARY_ID)
+);
+
+CREATE UNIQUE INDEX SPRING_SESSION_IX1 ON SPRING_SESSION (SESSION_ID);
+CREATE INDEX SPRING_SESSION_IX2 ON SPRING_SESSION (EXPIRY_TIME);
+CREATE INDEX SPRING_SESSION_IX3 ON SPRING_SESSION (PRINCIPAL_NAME);
+
+CREATE TABLE SPRING_SESSION_ATTRIBUTES (
+	SESSION_PRIMARY_ID CHAR(36) NOT NULL,
+	ATTRIBUTE_NAME VARCHAR(200) NOT NULL,
+	ATTRIBUTE_BYTES BLOB NOT NULL,
+	CONSTRAINT SPRING_SESSION_ATTRIBUTES_PK PRIMARY KEY (SESSION_PRIMARY_ID, ATTRIBUTE_NAME),
+	CONSTRAINT SPRING_SESSION_ATTRIBUTES_FK FOREIGN KEY (SESSION_PRIMARY_ID) REFERENCES SPRING_SESSION(PRIMARY_ID) ON DELETE CASCADE
+);
+```
+
+
+
+### 마리아DB 드라이버 추가
+
+build.gradle
+
+```gradle
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	compile 'org.projectlombok:lombok'
+	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
+	compile 'com.h2database:h2'
+	compile 'org.springframework.boot:spring-boot-starter-mustache'
+	compile 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	compile 'org.springframework.session:spring-session-jdbc'
+	
+	testCompile 'org.springframework.security:spring-security-test'
+	
+	annotationProcessor 'org.projectlombok:lombok'
+	compile 'org.mariadb.jdbc:mariadb-java-client'
+}
+```
+
+Refresh Gradle Project
+
+
+
+### 환경 설정 파일
+
+/springboot/src/main/resources/application-real.properties
+
+```properties
+# 서버에서 사용할 RDS 연동 환경을 구성
+spring.profiles.include=oauth,real-db
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL5InnoDBDialect
+spring.session.store-type=jdbc
+```
+
+
+
+/springboot/src/main/resources/application-real-db.properties
+
+```properties
+# GIT 배포에서 제외
+# RDS 연동 정보 구성
+spring.jpa.hibernate.ddl-auto=none
+#                     jdbc:mariabd://데이터베이스_엔드포인트:3306/DB_스키마_이름
+spring.datasource.url=jdbc:mariadb://rds주소:포트명(기본은 3306)/database이름
+# 데이터베이스 생성시 입력한 마스터 계정 및 패스워드
+spring.datasource.username=db계정
+spring.datasource.password=db계정 비밀번호
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
+```
+
+
+
+application-real-db.properties를 EC2 서버에 생성
+
+```bash
+[ec2-user@springboot-webservice ~]$ cd /home/ec2-user/app/
+[ec2-user@springboot-webservice app]$ vim application-real-db.properties
+```
+
+
+
+```bash
+spring.jpa.hibernate.ddl-auto=none
+spring.datasource.url=jdbc:mariadb://rds주소:포트명(기본은 3306)/database이름
+spring.datasource.username=db계정
+spring.datasource.password=db계정 비밀번호
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
+```
+
+
+
+### 실행 스크립트를 수정
+
+추가된 설정파일을 참조하도록 deploy.sh을 수정
+
+```bash
+[ec2-user@springboot-webservice app]$ cd step1
+[ec2-user@springboot-webservice step1]$ vi deploy.sh
+```
+
+
+
+```bash
+						:
+nohup java -jar \
+  -Dspring.config.location=classpath:/application.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties -Dspring.profiles.active=real \
+  $REPOSITORY/$JAR_NAME 2>&1 &
+```
+
+
+
+### 배포 테스트
+
+![image-20200509215234749](images/image-20200509215234749.png)
+
+
+
+```bash
+[ec2-user@springboot-webservice step1]$ ./deploy.sh 
+> git pull
+remote: Enumerating objects: 18, done.
+remote: Counting objects: 100% (18/18), done.
+remote: Compressing objects: 100% (9/9), done.
+remote: Total 10 (delta 4), reused 7 (delta 1), pack-reused 0
+Unpacking objects: 100% (10/10), done.
+From https://github.com/myanjini/springboot-webservice
+   28b941f..44da154  master     -> origin/master
+Updating 28b941f..44da154
+Fast-forward
+ bin/main/.gitignore                            | 1 +
+ bin/main/application-real.properties           | 4 ++++
+ build.gradle                                   | 1 +
+ src/main/resources/.gitignore                  | 1 +
+ src/main/resources/application-real.properties | 4 ++++
+ 5 files changed, 11 insertions(+)
+ create mode 100644 bin/main/application-real.properties
+ create mode 100644 src/main/resources/application-real.properties
+> 프로젝트 빌드
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Task :test
+2020-05-07 10:04:23.329  INFO 11698 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2020-05-07 10:04:23.340  INFO 11698 --- [extShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2020-05-07 10:04:23.341  INFO 11698 --- [extShutdownHook] .SchemaDropperImpl$DelayedDropActionImpl : HHH000477: Starting delayed evictData of schema as part of SessionFactory shut-down'
+Hibernate: drop table posts if exists
+2020-05-07 10:04:23.353  INFO 11698 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2020-05-07 10:04:23.355  INFO 11698 --- [extShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2020-05-07 10:04:23.357  INFO 11698 --- [extShutdownHook] .SchemaDropperImpl$DelayedDropActionImpl : HHH000477: Starting delayed evictData of schema as part of SessionFactory shut-down'
+Hibernate: drop table posts if exists
+Hibernate: drop table user if exists
+Hibernate: drop table user if exists
+2020-05-07 10:04:23.373  INFO 11698 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2020-05-07 10:04:23.381  INFO 11698 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2020-05-07 10:04:23.387  INFO 11698 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2020-05-07 10:04:23.469 ERROR 11698 --- [extShutdownHook] .SchemaDropperImpl$DelayedDropActionImpl : HHH000478: Unsuccessful: drop table user if exists
+2020-05-07 10:04:23.470  INFO 11698 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
+2020-05-07 10:04:23.482  INFO 11698 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 7.0.
+Use '--warning-mode all' to show the individual deprecation warnings.
+See https://docs.gradle.org/6.3/userguide/command_line_interface.html#sec:command_line_warnings
+
+BUILD SUCCESSFUL in 44s
+6 actionable tasks: 3 executed, 3 up-to-date
+> /home/ec2-user/app/step1 디렉터리로 이동
+> 배포 파일 복사
+> 구동 중인 애플리케이션 PID 검색
+> 구동 중인 애플리케이션 PID : 8614
+> kill -15 8614
+> 새 애플리케이션(springboot-0.0.1-SNAPSHOT.war) 배포
+nohup: appending output to ‘nohup.out’
+```
+
+
+
+### 웹 페이지 접속
+
+```mysql
+ALTER database `springboot-webservice` CHARACTER SET 'utf8mb4'  COLLATE = 'utf8mb4_general_ci' ;
+
+set character_set_server = utf8mb4;
+set character_set_filesystem = utf8mb4;
+
+show variables like 'c%';
+```
+
+
+
+## 소셜 로그인 오류를 해결
+
+![image-20200510022049621](images/image-20200510022049621.png)
+
+
+
+https://console.cloud.google.com/
+
+API 및 서비스 => 사용자 인증 정보
+
+OAuth 2.0 클라이언트 ID => springboot-webservice 클릭
+
+
+
+인스턴스의 퍼블릭 DNS(IPv4) 복사 => 승인된 리디렉션 URI에 추가
+
+http://퍼블릭DNS(IPv4):8080/login/oauth2/code/google
+
+
+
+### 구글 로그인 테스트
+
+
+
+### 네이버 EC2 주소 등록
+
+https://developers.naver.com/apps/#/list
+
+Application 목록 => springboot => API 설정
+
+
+
+로그인 오픈 API 서비스 환경 => PC웹
+
+서비스 URL : http://퍼블릭DNS(IPv4):8080
+
+네이버아이디로로그인 Callback URL : http://퍼블릭DNS(IPv4):8080/login/oauth2/code/naver 추가
+
+
+
+수정 버튼 클릭
+
+
+
+### 네이버 로그인 확인
+
