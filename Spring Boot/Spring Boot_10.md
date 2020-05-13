@@ -2372,9 +2372,11 @@ OAuth 2.0 클라이언트 ID => springboot-webservice 클릭
 
 
 
-인스턴스의 퍼블릭 DNS(IPv4) 복사 => 승인된 리디렉션 URI에 추가
+인스턴스의 퍼블릭 DNS(IPv4) 복사
 
 http://퍼블릭DNS(IPv4):8080/login/oauth2/code/google
+
+ => 승인된 리디렉션 URI에 추가
 
 
 
@@ -2403,4 +2405,1674 @@ Application 목록 => springboot => API 설정
 
 
 ### 네이버 로그인 확인
+
+
+
+## Travis CI 배포 자동화
+
+https://travis-ci.org/getting_started
+
+github 계정으로 로그인
+
+
+
+오른쪽 위 계정명 클릭 => Settings
+
+Sync account 클릭
+
+Legacy Services Integration => 깃허브 저장소 활성화
+
+![image-20200510141534460](images/image-20200510141534460.png)
+
+springboot-webservice 클릭
+
+
+
+![image-20200510142454215](images/image-20200510142454215.png)
+
+
+
+/springboot/.travis.yml
+
+```yaml
+language: java
+jdk:
+    - openjdk8
+branches:
+    only:
+        - master
+
+cache:
+    directories:
+        - '$HOME/.m2/repository'
+        - '$HOME/.gradle'
+before_install:
+    - chmod +x ./gradlew 
+script: "./gradlew clean build"
+
+notification:
+    email:
+        recipients:
+            - 본인이메일주소
+```
+
+
+
+.travis.yml 파일을 커밋 & 푸시
+
+
+
+Travis CI 저장소 페이지 확인
+
+![image-20200510143356142](images/image-20200510143356142.png)
+
+결과 메일 확인
+
+
+
+![image-20200510144236436](images/image-20200510144236436.png)
+
+
+
+### AWS Key 발급
+
+https://aws.amazon.com/ko/console/
+
+서비스 => Identity and Access Management(IAM)
+
+
+
+사용자 => 본인이 사용중인 사용자 이름 클릭 => 권한 추가
+
+* 권한 부여
+  * 기존 정책 직접 연결
+* 정책 필터
+  * s3full 검색 => AmazonS3FullAccess 체크
+  * codedeployfull 검색 => AWSCodeDeployFullAccess 체크
+* `다음: 검토` 버튼 클릭
+
+
+
+![image-20200510160242599](images/image-20200510160242599.png)
+
+`권한 추가` 버튼 클릭
+
+
+
+보안 자격 증명 => 액세스 키 만들기 => `.csv 파일 다운로드`
+
+액세스 키 ID, 비밀 액세스 키 확인
+
+
+
+### Travis CI에 액세스 키를 등록
+
+https://travis-ci.org/
+
+springboot-webservice => More options => Settings
+
+![image-20200510161849037](images/image-20200510161849037.png)
+
+
+
+Environment Variables
+
+ACCESS_SECRET_KEY와 AWS_ACCESS_KEY 입력 => Add
+
+![image-20200510162555654](images/image-20200510162555654.png)
+
+
+
+### S3(Simple Storage Service) 버킷 생성
+
+https://aws.amazon.com/ko/console/
+
+서비스 => S3 => 버킷 만들기
+
+
+
+* 버킷 만들기
+  * 일반 구성
+    * 버킷 이름 : springboot-build
+    * 리전 : 아시아 태평양(서울) ap-northeast-2
+  * 퍼블릭 액세스 차단을 위한 버킷 설정
+    * 모든 퍼블릭 액세스 차단
+  * `버킷 만들기` 버튼 클릭
+
+
+
+### S3로 배포 파일 전달
+
+/springboot/.travis.yml
+
+```yaml
+language: java
+jdk:
+    - openjdk8
+branches:
+    only:
+        - master
+
+cache:
+    directories:
+        - '$HOME/.m2/repository'
+        - '$HOME/.gradle'
+before_install:
+    - chmod +x ./gradlew
+script: "./gradlew clean build"
+
+before_deploy:
+    # 현재 위치의 모든 파일을 springboot-webservice 이름으로 압축
+    - zip -r springboot-webservice *
+    # Travis CI 실행되는 위치에 deploy 디렉터리를 생성 
+    - mkdir -p deploy
+    # 압축 파일을 deploy 디렉터리로 이동
+    - mv springboot-webservice.zip deploy/springboot-webservice.zip
+
+deploy:
+    - provider: s3
+      access_key_id: $AWS_ACCESS_KEY
+      secret_access_key: $ACCESS_SECRET_KEY
+      bucket: # S3 버킷
+      region: # S3 버킷 리전
+      skip_cleanup: true
+      acl: private
+      local_dir: deploy
+      wait-until-deployed: true
+
+notification:
+    email:
+        recipients:
+            - 본인이메일주소
+```
+
+
+
+### Travis CI 빌드 성공 확인
+
+![image-20200510172628292](images/image-20200510172628292.png)
+
+
+
+https://aws.amazon.com/ko/console/
+
+서비스 => S3 => springboot-build
+
+![image-20200510172749462](images/image-20200510172749462.png)
+
+
+
+## CodeDeploy 연동
+
+Code Commit = GitHub = 코드 저장소
+
+Code Build = Travis CI = 빌드 서비스
+
+Code Deploy = 베포(deploy) 서비스
+
+
+
+### IAM 역할을 추가
+
+배포 대상인 EC2 서버가 CodeDeploy와 연동될 수 있도록 IAM 역할을 추가
+
+
+
+https://aws.amazon.com/ko/console/
+
+서비스 => Identity and Access Management(IAM) => 액세스 관리 => 역할 => 역할 만들기
+
+
+
+* 역할 만들기
+  * 신뢰할 수 있는 유형의 개체 선택
+    * AWS 서비스
+  * 사용 사례 선택
+    * EC2
+  * `다음: 권한` 버튼 클릭
+  * 권한 정책 연결
+    * EC2Rolefor 검색 => AmazonEC2RoleforAWSCodeDeploy 체크
+  * `다음: 태그` 버튼 클릭
+  * 태그 추가(선택 사항)
+    * 키 : Name
+    * 값(선택 사항) : ec2-codedeploy-role
+  * `다음: 검토` 버튼 클릭
+  * 검토
+    * 역할 이름 : ec2-codedeploy-role
+  * `역할 만들기` 버튼 클릭
+
+
+
+### 생성한 역할을 EC2 서비스에 등록
+
+https://aws.amazon.com/ko/console/
+
+서비스 => EC2 => 인스턴스
+
+springboot-webservice 인스턴스 마우스 오른쪽 클릭 => 인스턴스 설정 => IAM 역할 연결/바꾸기
+
+* IAM 역할 연결/바꾸기
+  * IAM 역할 : ec2-codedeploy-role
+  * `적용` 버튼 클릭
+
+
+
+springboot-webservice 인스턴스 마우스 오른쪽 클릭 => 인스턴스 상태 => 재부팅
+
+
+
+### EC2에 CodeDeploy 에이전트 설치
+
+https://docs.aws.amazon.com/ko_kr/codedeploy/latest/userguide/codedeploy-agent-operations-install-linux.html
+
+https://docs.aws.amazon.com/ko_kr/codedeploy/latest/userguide/resource-kit.html#resource-kit-bucket-names
+
+
+
+설치 파일 다운로드
+
+```bash
+wget https://bucket-name.s3.region-identifier.amazonaws.com/latest/install
+```
+
+
+
+![image-20200510181224321](images/image-20200510181224321.png)
+
+
+
+```bash
+wget https://aws-codedeploy-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/latest/install
+```
+
+
+
+```bash
+[ec2-user@springboot-webservice ~]$ cd ~
+[ec2-user@springboot-webservice ~]$ wget https://aws-codedeploy-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/latest/install
+```
+
+
+
+```bash
+[ec2-user@springboot-webservice ~]$ ll
+total 20
+drwxrwxr-x 3 ec2-user ec2-user  4096 May  9 22:28 app
+-rw-rw-r-- 1 ec2-user ec2-user 13819 Apr 18 05:36 install
+```
+
+
+
+설치 파일에 실행 권한 부여 후 설치
+
+
+
+```bash
+[ec2-user@springboot-webservice ~]$ chmod +x ./install
+[ec2-user@springboot-webservice ~]$ sudo ./install auto
+I, [2020-05-10T18:23:25.371460 #2684]  INFO -- : Starting Ruby version check.
+I, [2020-05-10T18:23:25.371672 #2684]  INFO -- : Starting update check.
+I, [2020-05-10T18:23:25.371774 #2684]  INFO -- : Attempting to automatically detect supported package manager type for system...
+I, [2020-05-10T18:23:25.380778 #2684]  INFO -- : Checking AWS_REGION environment variable for region information...
+I, [2020-05-10T18:23:25.380870 #2684]  INFO -- : Checking EC2 metadata service for region information...
+I, [2020-05-10T18:23:25.435232 #2684]  INFO -- : Downloading version file from bucket aws-codedeploy-ap-southeast-1 and key latest/VERSION...
+I, [2020-05-10T18:23:25.480093 #2684]  INFO -- : Downloading version file from bucket aws-codedeploy-ap-southeast-1 and key latest/VERSION...
+I, [2020-05-10T18:23:25.509324 #2684]  INFO -- : Downloading package from bucket aws-codedeploy-ap-southeast-1 and key releases/codedeploy-agent-1.0-1.1597.noarch.rpm...
+I, [2020-05-10T18:23:25.610397 #2684]  INFO -- : Executing `/usr/bin/yum -y localinstall /tmp/codedeploy-agent-1.0-1.1597.noarch.tmp-20200510-2684-10f4fnp.rpm`...
+Loaded plugins: priorities, update-motd, upgrade-helper
+Examining /tmp/codedeploy-agent-1.0-1.1597.noarch.tmp-20200510-2684-10f4fnp.rpm: codedeploy-agent-1.0-1.1597.noarch
+Marking /tmp/codedeploy-agent-1.0-1.1597.noarch.tmp-20200510-2684-10f4fnp.rpm to be installed
+Resolving Dependencies
+amzn-main/latest                                                           | 2.1 kB  00:00:00     
+amzn-updates/latest                                                        | 2.5 kB  00:00:00     
+--> Running transaction check
+---> Package codedeploy-agent.noarch 0:1.0-1.1597 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+==================================================================================================
+ Package    Arch   Version    Repository                                                     Size
+==================================================================================================
+Installing:
+ codedeploy-agent
+            noarch 1.0-1.1597 /codedeploy-agent-1.0-1.1597.noarch.tmp-20200510-2684-10f4fnp  17 M
+
+Transaction Summary
+==================================================================================================
+Install  1 Package
+
+Total size: 17 M
+Installed size: 17 M
+Downloading packages:
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+ 
+pre hook : 1
+Checking the ruby version.
+Checking if there is already a process named codedeploy-agent running.
+  Installing : codedeploy-agent-1.0-1.1597.noarch                                             1/1 
+ 
+post hook : 1
+Check if there is a codedeployagent config file.
+Start codedeploy-agent in post hook if this is a first install.
+Installing codedeploy-agent auto-update cron in '/etc/cron.d/codedeploy-agent-update'...
+Installing codedeploy-agent auto-update cron in '/etc/cron.d/codedeploy-agent-update'...Complete
+  Verifying  : codedeploy-agent-1.0-1.1597.noarch                                             1/1 
+
+Installed:
+  codedeploy-agent.noarch 0:1.0-1.1597                                                            
+
+Complete!
+I, [2020-05-10T18:23:28.073555 #2684]  INFO -- : Update check complete.
+I, [2020-05-10T18:23:28.073651 #2684]  INFO -- : Stopping updater.
+```
+
+
+
+에이전트 실행 상태 검사
+
+
+
+```bash
+[ec2-user@springboot-webservice ~]$ sudo service codedeploy-agent status
+The AWS CodeDeploy agent is running as PID 2732
+```
+
+
+
+### CodeDeploy를 위한 권한 생성
+
+CodeDeploy에서 EC2에 접근하기 위한 권한을 생성
+
+
+
+https://aws.amazon.com/ko/console/
+
+서비스 => Identity and Access Management(IAM) => 액세스 관리 => 역할 => 역할 만들기
+
+
+
+* 역할 만들기
+
+  * 신뢰할 수 있는 유형의 개체 선택
+
+    * AWS 서비스
+
+  * 사용 사례 선택
+
+    * CodeDeploy => CodeDeploy
+
+      ![image-20200510183559918](images/image-20200510183559918.png)
+
+      ![image-20200510183630231](images/image-20200510183630231.png)
+
+  * `다음: 권한` 버튼 클릭
+
+  * `다음: 태그` 버튼 클릭
+
+  * 태그 추가(선택 사항)
+
+    * 키 : Name
+    * 값(선택 사항) : codedeploy-role
+
+  * `다음: 검토` 버튼 클릭
+
+  * 검토
+
+    * 역할 이름 : codedeploy-role
+
+  * `역할 만들기` 버튼 클릭
+
+
+
+### CodeDeploy 생성
+
+https://aws.amazon.com/ko/console/
+
+서비스 => CodeDeploy => 배포 => 애플리케이션 => 애플리케이션 생성
+
+
+
+* 애플리케이션 생성
+  * 애플리케이션 구성
+    * 애플리케이션 이름 : springboot-webservice
+    * 컴퓨팅 플랫폼 : EC2/온프래미스
+  * `애플리케이션 생성` 버튼 클릭
+
+
+
+배포 그룹 생성
+
+CodeDeploy => 배포 => 애플리케이션 => springboot-webservice => 배포 그룹 => 배포 그룹 생성
+
+* 배포 그룹 생성
+  * 배포 그룹 이름 : springboot-webservice-group
+  * 서비스 역할 : codedeploy-role
+  * 배포 유형 : 현재 위치
+  * 환경 구성 : Amazon EC2 인스턴스
+    * 키 : Name
+    * 값 : springboot-webservice
+  * 배포 설정 : CodeDeployDefault.AllAtOnce
+  * 로드 밸런서 : 로드 밸런싱 활성화 체크 해제
+  * `배포 그룹 생성` 버튼 클릭
+
+
+
+## Travis CI, S3, CodeDeploy 연동
+
+### EC2에 S3로부터 가져온 파일을 저장할 디렉터리를 생성
+
+```bash
+[ec2-user@springboot-webservice ~]$ mkdir ~/app/step2 && mkdir ~/app/step2/zip
+```
+
+~/app/step1 디렉터리 ⇒ deploy.sh을 이용해서 github에 있는 내용을 pull → gradlew build → java -jar … 실행하는 작업 디렉터리
+
+
+
+### CodeDeploy 설정 파일을 생성
+
+https://docs.aws.amazon.com/ko_kr/codedeploy/latest/userguide/application-revisions-appspec-file.html
+
+
+
+![image-20200510192804409](images/image-20200510192804409.png)
+
+
+
+<u>**주의사항**</u>
+
+버전을 정확히 명시
+
+오타 주의
+
+UTF-8 인코딩 여부 확인
+
+UNIX 방식의 개행문자가 적용되었는지 확인
+
+한글 포함 여부 확인
+
+
+
+/springboot/appspec.yml
+
+```yaml
+version: 0.0
+os: linux
+files:
+    - source: / 
+      destination: /home/ec2-user/app/step2/zip/
+      overwrite: yes
+```
+
+source: / ⇒ CodeDeploy가 전달한 모든 파일을 destination으로 지정한 디렉터리로 이동
+
+/opt/codedeploy-agent/deployment-root/CODEDEPLOY_ID/INSTANCE/deployment-archive
+
+
+
+### .travis.yml 파일에 CodeDeploy 내용을 추가
+
+/springboot/.travis.yml
+
+```yaml
+				:
+deploy:
+    - provider: s3
+				:
+
+    - provider: codedeploy
+      access_key_id: $AWS_ACCESS_KEY
+      secret_access_key: $ACCESS_SECRET_KEY
+      bucket: # 본인의 S3 버킷 이름
+      key: springboot-webservice.zip
+      bundle_type: zip
+      application: springboot-webservice               # AWS 콘솔에서 등록한 CodeDeploy 애플리케이션
+      deployment_group: springboot-webservice-group    # CodeDeploy 배포 그룹
+      region: # S3 버킷 리전
+      wait-until-deployed: true
+      			:
+```
+
+
+
+### 연동 테스트
+
+생성한 파일을 커밋하고 푸시
+
+
+
+```
+소스코드 
+→ 커밋&푸시 
+→ 깃허브 
+→ Travis CI 연동 ⇒ .travis.yml (before_deploy 까지 수행) 
+→ Travis CI 서버의 deploy 디렉터리에 springboot-webservice.zip 파일이 생성
+--------------------- Travis CI 로그를 통해서만 확인 ----------------------------------
+
+deploy.provider: s3 부분을 동작
+⇒ S3 버킷에 springboot-webservice.zip 파일을 저장(복사)
+--------------------- Travis CI 로그와 S3 버킷에 파일이 들어왔는지 확인 -----------------
+
+deploy.provider: codedeploy 부분을 동작
+⇒ S3 버킷에 있는 springboot-webserivce.zip 파일을 CodeDeploy Agent (EC2에서 동작)로 전달
+  /opt/codedeploy-agent/deployment-root/CodeDeploy ID/Instance ID
+
+--------------------- Travis CI 로그와 CodeDeploy Agent 디렉터리와 로그를 확인 ---------
+
+===================== Travis CI 작업 종료 ===========================================
+
+appspec.yml 파일에 정의된 작업을 수행
+⇒ CodeDeploy Agent 작업 디렉터리에 있는 모든 파일을 ~/app/step2/zip 디렉터리로 복사
+
+--------------------- zip 디렉터리에 파일 여부 또는 CodeDeploy 로그를 통해서 확인 --------
+```
+
+
+
+### Travis CI 성공 확인
+
+![image-20200510210513651](images/image-20200510210513651.png)
+
+
+
+### S3 버킷에 파일 업로드 확인
+
+![image-20200510211136133](images/image-20200510211136133.png)
+
+
+
+### CodeDeploy 배포 로그 확인
+
+서비스 => CodeDeploy => 배포 => 배포
+
+![image-20200510211522161](images/image-20200510211522161.png)
+
+배포 ID 클릭
+
+
+
+![image-20200510212131222](images/image-20200510212131222.png)
+
+View events 클릭
+
+
+
+![image-20200510212400625](images/image-20200510212400625.png)
+
+
+
+### CodeDeploy Agent 작업 디렉터리 확인
+
+```bash
+[ec2-user@springboot-webservice d-VTETGWLN3]$ pwd
+/opt/codedeploy-agent/deployment-root/8f1d529e-8979-4e24-937f-a1cdc6ad69be/d-VTETGWLN3
+[ec2-user@springboot-webservice d-VTETGWLN3]$ ll
+total 40148
+-rw-r--r-- 1 root root 41103725 May 10 19:54 bundle.tar
+drwxr-xr-x 6 root root     4096 May 10 19:54 deployment-archive
+[ec2-user@springboot-webservice d-VTETGWLN3]$ cd deployment-archive/
+[ec2-user@springboot-webservice deployment-archive]$ ll
+total 40
+-rw-rw-r-- 1 root root  117 May 10 19:54 appspec.yml
+drwxrwxr-x 4 root root 4096 May 10 19:54 bin
+drwxrwxr-x 9 root root 4096 May 10 19:54 build
+-rw-rw-r-- 1 root root 1073 May 10 19:54 build.gradle
+drwxrwxr-x 3 root root 4096 May 10 19:54 gradle
+-rwxrwxr-x 1 root root 5764 May 10 19:54 gradlew
+-rw-rw-r-- 1 root root 2953 May 10 19:54 gradlew.bat
+-rw-rw-r-- 1 root root   32 May 10 19:54 settings.gradle
+drwxrwxr-x 4 root root 4096 May 10 19:54 src
+```
+
+
+
+### 배포 디렉터리 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ cd ~/app/step2/zip/
+[ec2-user@springboot-webservice zip]$ ll
+total 40
+-rw-rw-r-- 1 root root  117 May 10 19:54 appspec.yml
+drwxr-xr-x 4 root root 4096 May 10 19:54 bin
+drwxr-xr-x 9 root root 4096 May 10 19:54 build
+-rw-rw-r-- 1 root root 1073 May 10 19:54 build.gradle
+drwxr-xr-x 3 root root 4096 May 10 19:54 gradle
+-rwxrwxr-x 1 root root 5764 May 10 19:54 gradlew
+-rw-rw-r-- 1 root root 2953 May 10 19:54 gradlew.bat
+-rw-rw-r-- 1 root root   32 May 10 19:54 settings.gradle
+drwxr-xr-x 4 root root 4096 May 10 19:54 src
+```
+
+
+
+Travis CI 배포 방법 
+
+https://docs.travis-ci.com/user/deployment/
+
+
+
+### 배포에 필요한 파일만 전달될 수 있도록 .travis.yml 파일을 수정
+
+/springboot/.travis.yml
+
+```yaml
+				:
+before_deploy:
+    #- zip -r springboot-webservice *
+    #- mkdir -p deploy
+    #- mv springboot-webservice.zip deploy/springboot-webservice.zip
+    
+    # before-deploy는 배포 파일만 선별
+    - mkdir -p before-deploy
+    - cp scripts/*.sh before-deploy/       # deploy.sh
+    - cp appspec.yml before-deploy/        # apspec.yml - codedeploy 설정
+    - cp build/libs/*.war before-deploy/   # springboot-webservice-xxx.war 
+    
+    - cd before-deploy && zip -r before-deploy *
+    
+    - cd .. && mkdir -p deploy
+    - mv before-deploy/before-deploy.zip deploy/springboot-webservice.zip
+				:
+```
+
+
+
+### deploy.sh 을 이용해서 서버 구동
+
+deploy.sh 파일 생성
+
+![image-20200510220626024](images/image-20200510220626024.png)
+
+
+
+![image-20200510220705764](images/image-20200510220705764.png)
+
+
+
+/springboot/scripts/deploy.sh
+
+```sh
+#!/bin/bash
+
+REPOSITORY=/home/ec2-user/app/step2
+
+echo "> $REPOSITORY 디렉터리로 이동"
+cd $REPOSITORY
+
+echo "> 배포 파일 복사"
+cp $REPOSITORY/zip/*.war $REPOSITORY/
+
+echo "> 구동 중인 애플리케이션 PID 검색"
+CURRENT_PID=$(pgrep -fl 'springboot*' | grep war | awk '{ print $1 }')
+
+echo "> 구동 중인 애플리케이션 PID : $CURRENT_PID"
+
+if [ -z "$CURRENT_PID" ]; then
+    echo "> 현재 구동 중인 애플리케이션이 없습니다."
+else 
+    echo "> kill -15 $CURRENT_PID"
+    kill -15 $CURRENT_PID
+    sleep 5
+fi
+
+JAR_NAME=$(ls -tr $REPOSITORY/ | grep war | tail -n 1)
+echo "> 새 애플리케이션($JAR_NAME) 배포"
+nohup java -jar \
+	-Dspring.config.location=classpath:/application.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties -Dspring.profiles.active=real \
+	$JAR_NAME > $REPOSITORY/nohup.out 2>&1 &
+```
+
+
+
+### appspec.yml 파일에 deploy.sh 실행을 추가
+
+/springboot/appspec.yml
+
+```yaml
+version: 0.0
+os: linux
+files:
+    - source: /
+      destination: /home/ec2-user/app/step2/zip/
+      overwrite: yes
+
+permissions:
+    - object: /
+      pattern: "**"
+      owner: ec2-user
+      group: ec2-user
+
+hooks:
+    ApplicationStart:
+        - location: deploy.sh
+          timeout: 60
+          runas: ec2-user
+```
+
+
+
+commit & push
+
+
+
+Travis CI Job log 확인
+
+```bash
+Preparing deploy
+Deploying application
+$ mkdir -p before-deploy
+$ cp scripts/*.sh before-deploy/
+$ cp appspec.yml before-deploy/
+$ cp build/libs/*.war before-deploy/
+$ cd before-deploy && zip -r before-deploy *
+$ cd .. && mkdir -p deploy
+$ mv before-deploy/before-deploy.zip deploy/springboot-webservice.zip
+$ rvm $(travis_internal_ruby) --fuzzy do ruby -S gem install dpl
+
+Installing deploy dependencies
+Logging in with Access Key: ****************MWHY
+NEWER VERSION AVAILABLE: Please upgrade to AWS SDK For Ruby V3
+Triggered deployment "d-IE39J2QN3".
+Deployment successful.
+Preparing deploy
+Deploying application
+Done. Your build exited with 0.
+```
+
+
+
+CodeDeploy
+
+![image-20200510235300612](images/image-20200510235300612.png)
+
+
+
+브라우저에서 확인
+
+![image-20200510235958017](images/image-20200510235958017.png)
+
+
+
+EC2에서
+
+```bash
+[ec2-user@springboot-webservice ~]$ sudo rm -rf ~/app/step2/*
+[ec2-user@springboot-webservice ~]$ mkdir ~/app/step2/zip
+```
+
+
+
+S3 버킷에 들어있는 파일을 모두 삭제 
+
+
+
+ps -ef | grep java 했을 때 나오는 PID를 삭제
+
+```bash
+[ec2-user@springboot-webservice ~]$ ps -ef | grep java
+ec2-user  4157     1  0 May10 ?        00:00:19 java -jar -Dspring.config.location=classpath:/application.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties -Dspring.profiles.active=real springboot-0.0.1-SNAPSHOT.war
+ec2-user  4411  4325  0 00:04 pts/1    00:00:00 grep --color=auto java
+[ec2-user@springboot-webservice ~]$ kill -9 4157
+```
+
+
+
+브라우저로 웹 사이트 접속이 되지 않는 것을 확인 후 commit & push 하고 기동되는지 확인
+
+
+
+## 엔진엑스를 이용한 무중단 배포
+
+![image-20200511093834802](images/image-20200511093834802.png)
+
+
+
+### EC2에 엔진엑스 설치 및 실행
+
+```bash
+[ec2-user@springboot-webservice ~]$ sudo yum install nginx
+Loaded plugins: priorities, update-motd, upgrade-helper
+amzn-main                                                                  | 2.1 kB  00:00:00     
+amzn-updates                                                               | 2.5 kB  00:00:00     
+Resolving Dependencies
+--> Running transaction check
+---> Package nginx.x86_64 1:1.16.1-1.37.amzn1 will be installed
+--> Processing Dependency: libprofiler.so.0()(64bit) for package: 1:nginx-1.16.1-1.37.amzn1.x86_64
+--> Running transaction check
+---> Package gperftools-libs.x86_64 0:2.0-11.5.amzn1 will be installed
+--> Processing Dependency: libunwind.so.8()(64bit) for package: gperftools-libs-2.0-11.5.amzn1.x86_64
+--> Running transaction check
+---> Package libunwind.x86_64 0:1.1-10.8.amzn1 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+==================================================================================================
+ Package                 Arch           Version                        Repository            Size
+==================================================================================================
+Installing:
+ nginx                   x86_64         1:1.16.1-1.37.amzn1            amzn-updates         598 k
+Installing for dependencies:
+ gperftools-libs         x86_64         2.0-11.5.amzn1                 amzn-main            570 k
+ libunwind               x86_64         1.1-10.8.amzn1                 amzn-main             72 k
+
+Transaction Summary
+==================================================================================================
+Install  1 Package (+2 Dependent packages)
+
+Total download size: 1.2 M
+Installed size: 3.0 M
+Is this ok [y/d/N]: y
+Downloading packages:
+(1/3): libunwind-1.1-10.8.amzn1.x86_64.rpm                                 |  72 kB  00:00:00     
+(2/3): nginx-1.16.1-1.37.amzn1.x86_64.rpm                                  | 598 kB  00:00:01     
+(3/3): gperftools-libs-2.0-11.5.amzn1.x86_64.rpm                           | 570 kB  00:00:01     
+--------------------------------------------------------------------------------------------------
+Total                                                             867 kB/s | 1.2 MB  00:00:01     
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+  Installing : libunwind-1.1-10.8.amzn1.x86_64                                                1/3 
+  Installing : gperftools-libs-2.0-11.5.amzn1.x86_64                                          2/3 
+  Installing : 1:nginx-1.16.1-1.37.amzn1.x86_64                                               3/3 
+  Verifying  : libunwind-1.1-10.8.amzn1.x86_64                                                1/3 
+  Verifying  : gperftools-libs-2.0-11.5.amzn1.x86_64                                          2/3 
+  Verifying  : 1:nginx-1.16.1-1.37.amzn1.x86_64                                               3/3 
+
+Installed:
+  nginx.x86_64 1:1.16.1-1.37.amzn1                                                                
+
+Dependency Installed:
+  gperftools-libs.x86_64 0:2.0-11.5.amzn1            libunwind.x86_64 0:1.1-10.8.amzn1           
+
+Complete!
+[ec2-user@springboot-webservice ~]$ sudo service nginx start
+Starting nginx:                                            [  OK  ]
+```
+
+
+
+### 보안 그룹 추가
+
+엔진엑스 포트(80)를 보안 그룹에 추가
+
+
+
+https://aws.amazon.com/ko/console/
+
+서비스 => EC2 => 인스턴스 => springboot-webservice => 보안 그룹 클릭
+
+인바운드 규칙 => 인바운드 규칙 편집
+
+* 규칙 추가
+  * 사용자 지정 TCP - TCP - 80 - 사용자 지정(0.0.0.0/0)
+
+
+
+### 브라우저를 이용해서 접속을 확인
+
+퍼블릭 DNS(IPv4):80
+
+![image-20200511095115291](images/image-20200511095115291.png)
+
+
+
+### 리다이렉트 주소를 추가
+
+구글과 네이버 로그인에도 변경된 주소(포드)를 등록
+
+
+
+https://console.cloud.google.com/
+
+API 및 서비스 => 사용자 인증 정보
+
+OAuth 2.0 클라이언트 ID => springboot-webservice 클릭
+
+
+
+인스턴스의 퍼블릭 DNS(IPv4) 복사
+
+기존 EC2 서버스 주소와 동일하고 포트 번호만 제거 (= 80 포트를 사용) 
+
+http://퍼블릭DNS(IPv4)/login/oauth2/code/google
+
+=> 승인된 리디렉션 URI에 추가
+
+
+
+https://developers.naver.com/apps/#/list
+
+Application 목록 => springboot => API 설정
+
+
+
+로그인 오픈 API 서비스 환경 => PC웹
+
+서비스 URL : http://퍼블릭DNS(IPv4) 로 변경
+
+네이버아이디로로그인 Callback URL : http://퍼블릭DNS(IPv4)/login/oauth2/code/naver 추가
+
+
+
+### 엔진엑스의 설정 파일을 수정
+
+엔진엑스가 실행 중인 스프링부트 애플리케이션을 바라볼 수 있도록 프록시를 설정
+
+```bash
+[ec2-user@springboot-webservice ~]$ sudo vim /etc/nginx/nginx.conf
+```
+
+
+
+```bash
+				:
+        location / {
+                proxy_pass http://localhost:8080;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $host;
+        }
+				:
+```
+
+
+
+```bash
+[ec2-user@springboot-webservice ~]$ sudo service nginx restart
+Stopping nginx:                                            [  OK  ]
+Starting nginx:                                            [  OK  ]
+```
+
+
+
+### 브라우저를 이용해서 접속 확인
+
+EC2 퍼블릭 도메인 주소에서 포트번호를 명시하지 않고 접속 (80 포트로 접속)
+
+
+
+![image-20200510235958017](images/image-20200510235958017.png)
+
+
+
+### 아래와 같은 오류가 발생하는 경우
+
+![image-20200511102643314](images/image-20200511102643314.png)
+
+
+
+스프링부트 애플리케이션이 실행되고 있는지 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ ps -ef | grep java
+ec2-user  7845  7413  0 10:27 pts/0    00:00:00 grep --color=auto java
+```
+
+
+
+deploy.sh을 이용해서 애플리케이션 실행
+
+```bash
+[ec2-user@springboot-webservice zip]$ pwd
+/home/ec2-user/app/step2/zip
+[ec2-user@springboot-webservice zip]$ ls
+appspec.yml  deploy.sh  springboot-0.0.1-SNAPSHOT.war
+[ec2-user@springboot-webservice zip]$ sudo chmod +x deploy.sh
+[ec2-user@springboot-webservice zip]$ ./deploy.sh
+> /home/ec2-user/app/step2 디렉터리로 이동
+> 배포 파일 복사
+> 구동 중인 애플리케이션 PID 검색
+> 구동 중인 애플리케이션 PID :
+> 현재 구동 중인 애플리케이션이 없습니다.
+> 새 애플리케이션(springboot-0.0.1-SNAPSHOT.war) 배포
+[ec2-user@springboot-webservice zip]$ nohup: appending output to ‘nohup.out’
+```
+
+
+
+### 활성화되어 있는 프로파일을 결정하는 컨트롤러를 생성
+
+![image-20200511103527392](images/image-20200511103527392.png)
+
+
+
+/springboot/src/main/java/springboot/web/ProfileController.java
+
+```java
+package springboot.web;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.core.env.Environment;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@RestController
+public class ProfileController {
+	private final Environment env;
+	
+	@GetMapping("/profile")
+	public String profile() {
+		// env.getActiveProfiles() : 현재 실행 중인 ActiveProfile을 모두 가져옴
+		List<String> profiles = Arrays.asList(env.getActiveProfiles());
+		String defaultProfile = profiles.isEmpty() ? "default" : profiles.get(0);
+		List<String> realProfiles = Arrays.asList("real", "real1", "real2");
+		return profiles.stream().filter(realProfiles::contains).findAny().orElse(defaultProfile);
+	}
+}
+```
+
+
+
+### 인증 없이 /profile 호출이 가능하도록 설정을 변경
+
+/springboot/src/main/java/springboot/config/auth/SecurityConfig.java
+
+```java
+		:
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			// h2-console 화면을 사용하기 위해서 설정을 해제 (개발 용도)
+			.csrf().disable()
+			.headers().frameOptions().disable()
+			.and()
+				// URL별로 권한 관리를 지정
+				.authorizeRequests()
+				// 권한 관리 대상을 지정
+				.antMatchers("/", "/css/**", "/images/**", "/js/**", "/h2-console/**", "/profile").permitAll()
+				.antMatchers("/api/v1/**").hasRole(Role.USER.name())
+				// 설정된 값을 제외한 나머지에 대해서는 인증 받은 사용자만 허용
+				.anyRequest().authenticated()
+			.and()
+				// logout 기능에 대해서 정의
+				.logout()
+					.logoutSuccessUrl("/")
+			.and()
+				// oauth2Login 기능에 대해서 정의
+				.oauth2Login()
+					// OAuth2 로그인에 성공했을 때 사용자 정보를 가져오는 방법을 설정
+					.userInfoEndpoint()
+						// 소셜 로그인에 성공했을 때 후속 조치를 구현한 구현체를 등록
+						.userService(customOAuth2UserService);
+	}
+		:
+```
+
+
+
+### 배포 및 테스트
+
+commit & push
+
+
+
+브라우저에서 http://퍼블릭DNS(IPv4)/profile 접속
+
+![image-20200511105350602](images/image-20200511105350602.png)
+
+
+
+http://퍼블릭DNS(IPv4):8080/ ⇒ 오류 ⇒ 스프링부트 애플리케이션이 실행되지 않았음
+
+http://퍼블릭DNS(IPv4):8080/profile ⇒ 오류 ⇒ 추가한 컨트롤러에 문제가 있음
+
+http://퍼블릭DNS(IPv4)/profile ⇒ 오류 ⇒ 엔진엑스 연동 문제 ⇒ nginx.conf 파일 확인
+
+
+
+### 무중단 배포를 위한 프로파일을 생성
+
+스프링부트 애플리케이션 2개에서 각각 사용할 프로파일 2개를 생성
+
+
+
+![image-20200511110252950](images/image-20200511110252950.png)
+
+
+
+/springboot/src/main/resources/application-real1.properties
+
+```properties
+server.port=8081
+spring.profiles.include=oauth,real-db
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL5InnoDBDialect
+spring.session.store-type=jdbc
+```
+
+
+
+/springboot/src/main/resources/application-real2.properties
+
+```properties
+server.port=8082
+spring.profiles.include=oauth,real-db
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL5InnoDBDialect
+spring.session.store-type=jdbc
+```
+
+
+
+### 프록시 설정을 쉽게 교체할 수 있도록 수정
+
+```bash
+[ec2-user@springboot-webservice ~]$ cd /etc/nginx/conf.d/
+[ec2-user@springboot-webservice conf.d]$ ls
+virtual.conf
+[ec2-user@springboot-webservice conf.d]$ sudo vim service-url.inc
+```
+
+
+
+```bash
+set $service_url http://127.0.0.1:8080;
+```
+
+
+
+```bash
+[ec2-user@springboot-webservice conf.d]$ cd ..
+[ec2-user@springboot-webservice nginx]$ sudo vim nginx.conf
+```
+
+
+
+```bash
+				:
+        # Load configuration files for the default server block.
+        # include /etc/nginx/default.d/*.conf;
+        include /etc/nginx/conf.d/service-url.inc;
+
+        location / {
+                # proxy_pass http://localhost:8080;
+                proxy_pass $service_url;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $host;
+        }
+				:
+```
+
+
+
+### 엔진엑스 재실행
+
+```bash
+[ec2-user@springboot-webservice nginx]$ sudo service nginx restart
+Stopping nginx:                                            [  OK  ]
+Starting nginx:                                            [  OK  ]
+```
+
+
+
+### 브라우저를 통해서 확인
+
+브라우저에서 http://퍼블릭DNS(IPv4) 접속
+
+
+
+![image-20200510235958017](images/image-20200510235958017.png)
+
+
+
+### 작업 디렉터리 생성
+
+```bash
+[ec2-user@springboot-webservice ~]$ mkdir ~/app/step3 && mkdir ~/app/step3/zip
+```
+
+
+
+### 작업 디렉터리에 맞춰서 appspec.yml 파일을 수정
+
+/springboot/appspec.yml
+
+```yml
+version: 0.0
+os: linux
+files:
+    - source: /
+      destination: /home/ec2-user/app/step3/zip/
+      overwrite: yes
+
+permissions:
+    - object: /
+      pattern: "**"
+      owner: ec2-user
+      group: ec2-user
+
+hooks:
+    ApplicationStart:
+        - location: deploy.sh
+          timeout: 100
+          runas: ec2-user
+```
+
+
+
+### profile.sh 생성
+
+/springboot/scripts/profile.sh
+
+```sh
+#!/usr/bin/env bash
+
+# 쉬고 있는 프로파일 찾기
+function find_idle_profile()
+{
+	RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/profile)
+	
+	if [ ${RESPONSE_CODE} -ge 400 ]
+ 	then
+ 		CURRENT_PROFILE=real2
+ 	else
+ 		CURRENT_PROFILE=$(curl -s http://localhost/profile)
+ 	fi
+ 	
+ 	if [ ${CURRENT_PROFILE} == real1 ]
+ 	then
+ 		IDLE_PROFILE=real2
+ 	else
+ 		IDLE_PROFILE=real1
+ 	fi
+ 	
+ 	echo "${IDLE_PROFILE}"
+}
+
+# 쉬고 있는 포트 검색
+function find_idle_port()
+{
+	IDLE_PROFILE=$(find_idle_profile)
+	
+	if [ ${IDLE_PROFILE} == real1 ]
+	then
+		echo "8081"
+	else
+		echo "8082"
+	fi
+}
+```
+
+
+
+### switch.sh
+
+엔진엑스가 바라보는 스프링부트 애플리케이션을 변경 ⇒ service-url.inc 파일의 내용을 변경 후 엔진엑스 재기동
+
+
+
+/springboot/scripts/switch.sh
+
+```sh
+#!/usr/bin/env bash
+
+ABSPATH=$(readlink -f $0)
+ABSDIR=$(dirname $ABSPATH)
+source ${ABSDIR}/profile.sh
+
+function switch_proxy() {
+	IDLE_PORT=$(find_idle_port)
+	
+	echo "> 전환할 포트: $IDLE_PORT"
+	echo "> 포트 전환"
+	echo "set \$service_url http://127.0.0.1:${IDLE_PORT};" | sudo tee /etc/nginx/conf.d/service-url.inc
+	echo "> 엔진엑스 재기동"
+	sudo service nginx reload
+}
+```
+
+
+
+### stop.sh
+
+스프링 부트 중지 스크립트 (엔진엑스와 연결되지 않은(=IDLE) 스프링부트 애플리케이션을 중지)
+
+
+
+/springboot/scripts/stop.sh
+
+```sh
+#!/usr/bin/env bash
+
+ABSPATH=$(readlink -f $0)
+ABSDIR=$(dirname $ABSPATH)
+source ${ABSDIR}/profile.sh
+
+IDLE_PORT=$(find_idle_port)
+
+echo "> $IDLE_PORT에서 구동중인 애플리케이션 PID 확인"
+IDLE_PID=$(lsof -ti tcp:${IDLE_PORT})
+
+if [ -z ${IDLE_PID} ]
+then
+	echo "> 현재 구동중인 애플리케이션이 없습니다."
+else 
+	echo "> kill -15 $IDLE_PID"
+	kill -15 ${IDLE_PID}
+	sleep 5
+fi
+```
+
+
+
+### start.sh
+
+사용하고 있지 않은 프로파일(=IDLE_PROFILE)로 스프링부트 애플리케이션을 실행
+
+
+
+/springboot/scripts/start.sh
+
+```sh
+#!/usr/bin/env bash
+
+ABSPATH=$(readlink -f $0)
+ABSDIR=$(dirname $ABSPATH)
+source ${ABSDIR}/profile.sh
+
+REPOSITORY=/home/ec2-user/app/step3
+PROJECT_NAME=springboot-webservice
+
+echo "> $REPOSITORY 디렉터리로 이동"
+cd $REPOSITORY
+
+echo "> Build 파일 복사"
+echo "> cp $REPOSITORY/zip/*.war $REPOSITORY/"
+cp $REPOSITORY/zip/*.war $REPOSITORY/
+
+JAR_NAME=$(ls -tr $REPOSITORY/ | grep war | tail -n 1)
+IDLE_PROFILE=$(find_idle_profile)
+
+echo "> 새 애플리케이션($JAR_NAME) 배포"
+nohup java -jar \
+	-Dspring.config.location=classpath:/application.properties,classpath:/application-$IDLE_PROFILE.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties -Dspring.profiles.active=$IDLE_PROFILE \
+	$JAR_NAME > $REPOSITORY/nohup.out 2>&1 &
+```
+
+
+
+### health.sh
+
+start.sh 로 실행한 스프링부트 애플리케이션이 정상적으로 실행하는지 체크 ⇒ 정상 실행 상태인 경우 nginx 가 포워드하는 스프링부트 애플리케이션의 포트를 변경
+
+
+
+/springboot/scripts/health.sh
+
+```sh
+#!/usr/bin/env bash
+
+ABSPATH=$(readlink -f $0)
+ABSDIR=$(dirname $ABSPATH)
+source ${ABSDIR}/profile.sh
+source ${ABSDIR}/switch.sh
+
+IDLE_PORT=$(find_idle_port)
+
+echo "> Health Check Start !!!"
+echo "> IDLE_PORT : $IDLE_PORT"
+echo "> curl -s http://localhost:$IDLE_PORT/profile"
+sleep 10
+
+for RETRY_COUNT in {1..10}
+do
+	RESPONSE=$(curl -s http://localhost:${IDLE_PORT}/profile)
+	echo "> RESPONSE: ${RESPONSE}"
+	UP_COUNT=$(echo ${RESPONSE} | grep 'real' | wc -l)
+	
+	if [ ${UP_COUNT} -ge 1 ]
+	then 
+		echo "> Health Check 성공"
+		switch_proxy
+		break
+	else 
+		echo "> Health Check 응답이 없거나 실행 상태가 아닙니다."
+		echo "> Health Check: ${RESPONSE}"
+	fi
+	
+	if [ ${RETRY_COUNT} -eq 10 ]
+	then 
+		echo "> Health Check 실패"
+		echo "> 엔진엑스에 연결하지 않고 배포를 종료합니다."
+		exit 1
+	fi
+	
+	echo "> Health Check 연결 실패. 재시도 ..."
+	sleep 10
+done
+```
+
+
+
+### appspec.yml 수정
+
+배포 상태에 따라 쉘 스크립트를 실행
+
+https://docs.aws.amazon.com/ko_kr/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html
+
+
+
+/springboot/appspec.yml
+
+```yaml
+version: 0.0
+os: linux
+files:
+    - source: /
+      destination: /home/ec2-user/app/step3/zip/
+      overwrite: yes
+
+permissions:
+    - object: /
+      pattern: "**" 
+      owner: ec2-user
+      group: ec2-user 
+            
+hooks:
+    AfterInstall:
+        - location: stop.sh # 엔진엑스와 연결되지 않은 스프링부트 애플리케이션이 존재하는 경우 중
+          timeout: 60
+          runas: ec2-user          
+    ApplicationStart:
+        - location: start.sh # 새로 배포한 스프링부트 애플리케이션을 실행
+          timeout: 100
+          runas: ec2-user      
+    ValidateService:
+        - location: health.sh # 새로 배포한 스프링부트 애플리케이션이 정상적으로 실행되었는지 확인 후 엔진엑스와 연결을 변경
+          timeout: 100
+          runas: ec2-user
+```
+
+
+
+* `AfterInstall` – 애플리케이션 구성 또는 파일 권한 변경과 같은 작업에 이 배포 수명 주기 이벤트를 사용할 수 있습니다.
+* `ApplicationStart` – `ApplicationStop` 중에 중지된 서비스를 다시 시작하려면 일반적으로 이 배포 수명 주기 이벤트를 사용합니다.
+* `ValidateService` – 마지막 배포 수명 주기 이벤트입니다. 배포가 성공적으로 완료되었는지 확인하는 데 사용됩니다.
+
+
+
+### 테스트
+
+EC2에서 실행 중인 Java 프로그램을 모두 중지
+
+```bash
+$ ps -ef | grep java
+$ kill -9 JAVA_PID
+```
+
+
+
+엔진엑스와 연동된 스프링부트 애플리케이션이 실행되고 있지 않으므로 500 오류가 발생
+
+![image-20200511102643314](images/image-20200511102643314.png)
+
+
+
+/springboot/src/main/resources/templates/layout/header.mustache
+
+```mustache
+<!DOCTYPE html>
+<html>
+<head>
+	<title>스프링 부트 웹 서비스</title>
+	<meta http-equip="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+<body>
+	<h1>V1</h1>
+```
+
+
+
+commit & push
+
+
+
+Travis CI ⇒ S3 ⇒ CodeDeploy (stop → start → health)
+
+
+
+브라우저를 통해서 확인
+
+브라우저에서 http://퍼블릭DNS(IPv4) 접속
+
+![image-20200511202626528](images/image-20200511202626528.png)
+
+
+
+Travis CI 배포 인스턴스의 로그를 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ tail -f /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log 
+[2020-05-11 20:23:51.438] [d-T7JXW5AO3][stdout]> Health Check 응답이 없거나 실행 상태가 아닙니다.
+[2020-05-11 20:23:51.438] [d-T7JXW5AO3][stdout]> Health Check:
+[2020-05-11 20:23:51.438] [d-T7JXW5AO3][stdout]> Health Check 연결 실패. 재시도 ...
+[2020-05-11 20:24:01.711] [d-T7JXW5AO3][stdout]> RESPONSE: real1
+[2020-05-11 20:24:01.720] [d-T7JXW5AO3][stdout]> Health Check 성공
+[2020-05-11 20:24:01.733] [d-T7JXW5AO3][stdout]> 전환할 포트: 8081
+[2020-05-11 20:24:01.733] [d-T7JXW5AO3][stdout]> 포트 전환
+[2020-05-11 20:24:01.738] [d-T7JXW5AO3][stdout]set $service_url http://127.0.0.1:8081;
+[2020-05-11 20:24:01.739] [d-T7JXW5AO3][stdout]> 엔진엑스 재기동
+[2020-05-11 20:24:01.770] [d-T7JXW5AO3][stdout]Reloading nginx: [  OK  ]
+```
+
+
+
+~/app/step3/nohup.out 파일 내용 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ tail -f ~/app/step3/nohup.out
+2020-05-11 20:23:54.996  INFO 13364 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2020-05-11 20:23:55.185  INFO 13364 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page template: index
+2020-05-11 20:23:55.476  INFO 13364 --- [           main] s.a.ScheduledAnnotationBeanPostProcessor : No TaskScheduler/ScheduledExecutorService bean found for scheduled processing
+2020-05-11 20:23:55.564  INFO 13364 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2020-05-11 20:23:55.567  INFO 13364 --- [           main] springboot.SpringbootApplication         : Started SpringbootApplication in 13.968 seconds (JVM running for 15.148)
+2020-05-11 20:24:01.562  INFO 13364 --- [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2020-05-11 20:24:01.562  INFO 13364 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2020-05-11 20:24:01.578  INFO 13364 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 16 ms
+Hibernate: select posts0_.id as id1_0_, posts0_.created_date as created_2_0_, posts0_.modified_date as modified3_0_, posts0_.author as author4_0_, posts0_.content as content5_0_, posts0_.title as title6_0_ from posts posts0_ order by posts0_.id DESC
+Hibernate: select posts0_.id as id1_0_, posts0_.created_date as created_2_0_, posts0_.modified_date as modified3_0_, posts0_.author as author4_0_, posts0_.content as content5_0_, posts0_.title as title6_0_ from posts posts0_ order by posts0_.id DESC
+```
+
+
+
+service-url.inc 파일 내용 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ cat /etc/nginx/conf.d/service-url.inc 
+set $service_url http://127.0.0.1:8081;
+```
+
+
+
+내용 변경 후 배포
+
+/springboot/src/main/resources/templates/layout/header.mustache
+
+```mustache
+<!DOCTYPE html>
+<html>
+<head>
+	<title>스프링 부트 웹 서비스</title>
+	<meta http-equip="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+<body>
+	<h1>V2</h1>
+```
+
+
+
+commit & push
+
+
+
+Travis CI ⇒ S3 ⇒ CodeDeploy (stop → start → health)
+
+
+
+브라우저를 통해서 확인
+
+배포 중에는 V1 화면이 보여지고, 배포가 완료되면 V2 화면으로 전환 (무중단 여부 확인)
+
+
+
+![image-20200511204851119](images/image-20200511204851119.png)
+
+
+
+Travis CI 배포 인스턴스의 로그를 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ tail -f /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log 
+[2020-05-11 20:46:58.771] [d-A48B6QOGG][stdout]> Health Check 응답이 없거나 실행 상태가 아닙니다.
+[2020-05-11 20:46:58.771] [d-A48B6QOGG][stdout]> Health Check:
+[2020-05-11 20:46:58.771] [d-A48B6QOGG][stdout]> Health Check 연결 실패. 재시도 ...
+[2020-05-11 20:47:09.060] [d-A48B6QOGG][stdout]> RESPONSE: real2
+[2020-05-11 20:47:09.072] [d-A48B6QOGG][stdout]> Health Check 성공
+[2020-05-11 20:47:09.122] [d-A48B6QOGG][stdout]> 전환할 포트: 8082
+[2020-05-11 20:47:09.123] [d-A48B6QOGG][stdout]> 포트 전환
+[2020-05-11 20:47:09.138] [d-A48B6QOGG][stdout]set $service_url http://127.0.0.1:8082;
+[2020-05-11 20:47:09.139] [d-A48B6QOGG][stdout]> 엔진엑스 재기동
+[2020-05-11 20:47:09.220] [d-A48B6QOGG][stdout]Reloading nginx: [  OK  ]
+```
+
+
+
+~/app/step3/nohup.out 파일 내용 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ tail -f ~/app/step3/nohup.out
+2020-05-11 20:47:02.688  INFO 13595 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2020-05-11 20:47:02.877  INFO 13595 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page template: index
+2020-05-11 20:47:03.196  INFO 13595 --- [           main] s.a.ScheduledAnnotationBeanPostProcessor : No TaskScheduler/ScheduledExecutorService bean found for scheduled processing
+2020-05-11 20:47:03.288  INFO 13595 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2020-05-11 20:47:03.290  INFO 13595 --- [           main] springboot.SpringbootApplication         : Started SpringbootApplication in 14.378 seconds (JVM running for 15.611)
+2020-05-11 20:47:08.893  INFO 13595 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2020-05-11 20:47:08.893  INFO 13595 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2020-05-11 20:47:08.913  INFO 13595 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 19 ms
+Hibernate: select posts0_.id as id1_0_, posts0_.created_date as created_2_0_, posts0_.modified_date as modified3_0_, posts0_.author as author4_0_, posts0_.content as content5_0_, posts0_.title as title6_0_ from posts posts0_ order by posts0_.id DESC
+Hibernate: select posts0_.id as id1_0_, posts0_.created_date as created_2_0_, posts0_.modified_date as modified3_0_, posts0_.author as author4_0_, posts0_.content as content5_0_, posts0_.title as title6_0_ from posts posts0_ order by posts0_.id DESC
+```
+
+
+
+service-url.inc 파일 내용 확인
+
+```bash
+[ec2-user@springboot-webservice ~]$ cat /etc/nginx/conf.d/service-url.inc 
+set $service_url http://127.0.0.1:8082;
+```
+
+
 
