@@ -574,9 +574,445 @@ http://localhost:5555/licensingservice/v1/organizations/e254f8c-c442-4ebe-a82a-e
 
 
 
+### 자동 경로 맵핑 (p206)
+
 주울 서버를 통해서 서비스를 호출할 때는, http://주울서버주소:주울서버포트/서비스명/서비스주소 형식으로 호출
+
+첫번째 파라미터에 들어있는 서비스명을 유레카와의 연동을 통해서 실제 서비스로 라우팅
+
+자동 경로 맵핑 정보를 확인 ⇒ http://주울서버주소:포트/actuator/routes
+
+```json
+{
+  "/configserver/**": "configserver",
+  "/licensingservice/**": "licensingservice",
+  "/organizationservice/**": "organizationservice"
+}
+```
+
+주울 라우팅 정보 : 서비스 이름 ⇒ 유레카를 통해서 실제 주소를 가져옴
 
 ![image-20200518153150146](images/image-20200518153150146.png)
 
 
+
+### 수동 경로 맵핑 (p208)
+
+서비스 경로를 외부에 감추거나 간소화할 경우 사용
+
+
+
+http://주울주소:포트/organizationservice/v1/organizations/{조직ID}
+
+http://주울주소:포트/organization/v1/organizations/{조직ID}
+
+
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+server:
+  port: 5555
+
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    registerWithEureka: true
+    fetchRegistry: true   
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+    level:
+      com.netflix: WARN
+      org.springframework.web: WARN
+      com.thoughtmechanix: DEBUG
+
+zuul:
+  routes:
+#   유레카에 등록된 애플리케이션 이름: 주울 라우팅 정보    
+    organizationservice: /organization/**
+```
+
+
+
+### 주울 서버 재기동 후 테스트
+
+주울 라우팅 정보 확인
+
+http://localhost:5555/actuator/routes
+
+
+
+![image-20200519094024233](images/image-20200519094024233.png)
+
+
+
+```json
+{
+  "/organization/**": "organizationservice",       ⇐ 수동 경로 맵핑
+  "/configserver/**": "configserver",              ---+ ⇐ 자동 경로 맵핑
+  "/licensingservice/**": "licensingservice",         |
+  "/organizationservice/**": "organizationservice" ---+ 
+}
+```
+
+
+
+1) 수동 경로 맵핑을 이용해서 서비스를 호출
+
+http://localhost:5555/organization/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+
+
+![image-20200519094151965](images/image-20200519094151965.png)
+
+
+
+2) 자동 경로 맵핑을 이용해서 서비스를 호출
+
+http://localhost:5555/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+
+
+3) 조직 서비스로 직접 서비스를 호출
+
+http://localhost:8085/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+
+
+1), 2), 3) 모두 동일한 결과를 반환
+
+
+
+### 자동 경로 맵핑을 비활성화
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+		:
+zuul:
+  # 자동 경로 맵핑에서 제외할 애플리케이션 이름을 명시
+  ignored-services:
+  - 'organizationservice'
+  routes:
+    organizationservice: /organization/**
+```
+
+
+
+### 주울 재기동 후 테스트
+
+주울 라우팅 정보 확인
+
+http://localhost:5555/actuator/routes
+
+![image-20200519094854244](images/image-20200519094854244.png)
+
+
+
+조직 서비스에 자동 맵핑 정보("/organizationservice/**": "organizationservice") 빠져 있음
+
+
+
+조직 서비스의 자동 맵핑 주소로 접속했을 때 접속되지 않는 것을 확인
+
+http://localhost:5555/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+![image-20200519095042899](images/image-20200519095042899.png)
+
+
+
+### 모든 자동 경로 맵핑을 해제할 경우
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+		:
+zuul:
+  # 자동 경로 맵핑에서 제외할 애플리케이션 이름을 명시
+  ignored-services: "*"
+  routes:
+    organizationservice: /organization/**
+```
+
+
+
+![image-20200519095328098](images/image-20200519095328098.png)
+
+제공하는 서비스가 API 형태임을 외부에서 알 수 있도록 모든 요청에 /api라는 접두어를 추가
+
+
+
+### 서비스 URL에 접두어 추가
+
+모든 서비스 URL에 /api라는 접두어를 추가
+
+
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+		:
+zuul:
+  # 정의한 모든 서비스에 /api 접두어를 추가
+  prefix: /api
+  routes:
+    organizationservice: /organization/**
+```
+
+
+
+### 주울 서버 재기동 후 테스트
+
+기존 서비스 주소로 요청 ⇒ 접속이 되지 않는 것을 확인
+
+http://localhost:5555/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+
+
+![image-20200519095938176](images/image-20200519095938176.png)
+
+
+
+기존 서비스 주소에 /api를 추가해서 요청 ⇒ 서비스가 제공되는 것을 확인
+
+http://localhost:5555/api/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+![image-20200519100017258](images/image-20200519100017258.png)
+
+
+
+### 정적 수동 경로 맵핑 (p211)
+
+정적 = 서비스 주소가 고정되어 있음 (=고정 URL 사용) ⇒ 유레카와 연동할 수 없는 서비스 (외부 서비스, 다른 플랫폼으로 구현)
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+		:
+zuul:
+  routes:
+    licensestatic:               # 주울에서 관리하는 키 이름 
+      path: /licensestatic/**    # 정적 경로
+      url: http://www.naver.com  # 서비스 경로
+```
+
+
+
+### 주울 서버 재기동 후 테스트
+
+주울 라우팅 정보 확인
+
+http://localhost:5555/actuator/routes
+
+![image-20200519103251188](images/image-20200519103251188.png)
+
+
+
+정적 수동 경로로 서비스를 요청
+
+http://localhost:5555/licensestatic/ ⇒ 네이버 페이지가 제공
+
+
+
+### 여러 경로를 적정으로 매핑 (p212)
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+zuul:
+  routes:
+    licensestatic:               # 주울에서 관리하는 키 이름 
+      path: /licensestatic/**    # 정적 경로
+      serviceId: licensestatic   # 리본에서 서비스를 찾을 때 사용하는 ID
+ribbon.eureka.enabled: false     # 리본에서 유레카 지원을 해제
+licensestatic:
+  ribbon:                        # 요청을 라우팅할 서비스 목록
+    listOfServers: http://www.naver.com, http://www.google.com
+```
+
+
+
+### 주울 서버 재기동 후 테스트
+
+라우팅 정보를 조회
+
+http://localhost:5555/actuator/routes
+
+![image-20200519104433463](images/image-20200519104433463.png)
+
+
+
+정적 맵핑 주소로 서비스 요청
+
+http://localhost:5555/licensestatic/
+
+⇒ 네이버와 구글 페이지를 반복해서 보여 줌
+
+⇒ 리본 서비스가 해당 요청을 로드밸렌싱해서 제공
+
+
+
+### 경로 구성을 동적으로 로딩
+
+현재 경로 구성을 application.yml에서 정의 → 동적으로 변경이 어렵다.
+
+⇒ 컨피그 서버와 연동하면 동적으로 변경하는 것이 가능
+
+
+
+경로 구성 정보를 포함하고 있는 zuulservice-*.yml 파일을 생성
+
+c:\temp\zuulservice 폴더 생성 후 zuulservice.yml, zuulservice-dev.yml, zuulservice-prod.yml 파일을 생성
+
+```bash
+C:\Users\TTak>mkdir C:\Temp\zuulservice
+C:\Users\TTak>cd C:\Temp\zuulservice
+C:\Temp\zuulservice>code zuulservice.yml
+C:\Temp\zuulservice>code zuulservice-dev.yml
+C:\Temp\zuulservice>code zuulservice-prod.yml
+```
+
+
+
+```yaml
+# p214 참조
+zuul.ignored-services: '*'
+zuul.prefix: /api
+zuul.routes.organizationservice: /organization/**
+zuul.routes.licensingservice: /licensing/**
+```
+
+
+
+깃허브에 zuulservice 디렉터리와 파일을 등록
+
+![image-20200519110023817](images/image-20200519110023817.png)
+
+
+
+깃허브에 등록한 zuulservice 저장소를 설정 서버에 등록
+
+/configurationserver/src/main/resources/application.yml
+
+```yaml
+server:
+  port: 8888
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/profornnan/spring-config
+          searchPaths: licensingservice,organizationservice,zuulservice
+				:
+```
+
+
+
+저장 후 설정 서버를 재기동
+
+http://localhost:8888/zuulservice/default
+
+![image-20200519110838123](images/image-20200519110838123.png)
+
+
+
+zuul 라우팅 설정을 모두 삭제 후 주울 서버 재기동
+
+/zuulsvr/src/main/resources/application.yml
+
+```yaml
+#zuul:
+#  routes:
+#    licensestatic:               # 주울에서 관리하는 키 이름 
+#      path: /licensestatic/**    # 정적 경로
+#      serviceId: licensestatic   # 리본에서 서비스를 찾을 때 사용하는 ID
+#ribbon.eureka.enabled: false     # 리본에서 유레카 지원을 해제
+#licensestatic:
+#  ribbon:                        # 요청을 라우팅할 서비스 목록
+#    listOfServers: http://www.naver.com, http://www.google.com
+```
+
+
+
+주울 라우팅 정보 확인
+
+http://localhost:5555/actuator/routes
+
+![image-20200519112932127](images/image-20200519112932127.png)
+
+
+
+주소로 서비스를 요청 ⇒ 정상 처리
+
+깃허브에서 경로 정보를 수정 (prefix 부분 수정)
+
+![image-20200519135332642](images/image-20200519135332642.png)
+
+
+
+컨피그 서버를 조회하면 변경된 설정 정보가 전달되는 것을 확인
+
+http://localhost:8888/zuulservice/default
+
+![image-20200519135408856](images/image-20200519135408856.png)
+
+
+
+주울 라우팅 정보를 조회하면 변경되지 않은 것을 확인
+
+http://localhost:5555/actuator/routes
+
+![image-20200519112932127](images/image-20200519112932127.png)
+
+
+
+주울 서버의 actuator/refresh 엔드포인트 호출을 통해 변경된 설정 정보를 반영 (POST 방식으로 호출)
+
+http://localhost:5555/actuator/refresh
+
+![image-20200519135529791](images/image-20200519135529791.png)
+
+
+
+주울의 라우팅 정보를 조회
+
+http://localhost:5555/actuator/routes
+
+![image-20200519135559408](images/image-20200519135559408.png)
+
+
+
+### 필터
+
+![image-20200519115306937](images/image-20200519115306937.png)
+
+
+
+```
+   Client  -------------------------------------------------------------> Server (Springboot)
+        #1   http://localhost:8080/service/param1/value1/param2/value2 
+        #2   http://localhost:8080/service.do?param1=value1&param2=value2
+
+           <-------------------------------------------------------------
+        #3   { "data1":"value1", "data2":"value2", … }      ⇐ JSON 형식의 데이터를 반환
+                                                                ← @RestController 
+        #4   <html><head>...</head><body>....</body></html> ⇐ HTML 문서를 반환
+                                                                ← ModelAndView
+```
+
+\#1 ⇒ Restful
+
+\#1 → #3 ⇒ REST API 형식
+
+\#3 ⇒ 필연적으로 클라이언트에서 데이터를 보여주는 프로그램이 존재해야 함
 
