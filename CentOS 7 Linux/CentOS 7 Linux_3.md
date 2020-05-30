@@ -10,7 +10,7 @@
 
    ![image-20200127105846528](images/image-20200127105846528.png)
 
-3. CD/DVD (IDE)를 클릭한다. Use ISO image file 선택하고, Browse를 눌러 다운로드한 ios 파일을 선택한다.
+3. CD/DVD (IDE)를 클릭한다. Use ISO image file 선택하고, Browse를 눌러 다운로드한 iso 파일을 선택한다.
 
    ![image-20200127110119546](images/image-20200127110119546.png)
 
