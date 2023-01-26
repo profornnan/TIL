@@ -1022,3 +1022,137 @@ WHERE department_id IS NOT NULL
 GROUP BY department_id;
 ```
 
+## 내장 함수
+
+- SQL에서는 함수의 개념을 사용하는데 수학의 함수와 마찬가지로 특정 값이나 열의 값을 입력받아 그 값을 계산하여 결과 값을 돌려줌
+- SQL의 함수는 DBMS가 제공하는 내장 함수(built-in function)와 사용자가 필요에 따라 직접 만드는 사용자 정의 함수(user-defined function)로 나뉨
+
+### SQL 내장 함수
+
+- SQL 내장 함수는 상수나 속성 이름을 입력 값으로 받아 단일 값을 결과로 반환함
+- 모든 내장 함수는 최초에 선언될 때 유효한 입력 값을 받아야 함
+
+![img](images/4-12.png)
+
+#### 숫자 함수
+
+![img](images/4-13.png)
+
+##### ABS 함수
+
+절대값을 구하는 함수
+
+```sql
+SELECT ABS(-78), ABS(+78)
+FROM DUAL;
+```
+
+-78과 +78의 절대값
+
+##### ROUND 함수
+
+반올림한 값을 구하는 함수
+
+```sql
+SELECT ROUND(4.875, 1)
+FROM DUAL;
+```
+
+4.875를 소수 첫째 자리까지 반올림한 값
+
+##### 숫자 함수의 연산
+
+```sql
+SELECT custid "고객번호", ROUND(SUM(saleprice)/COUNT(*), -2) "평균금액"
+FROM Orders
+GROUP BY custid;
+```
+
+고객별 평균 주문 금액을 백 원 단위로 반올림한 값
+
+#### 문자 함수
+
+![img](images/4-14.png)
+
+##### REPLACE
+
+문자열을 치환하는 함수
+
+```sql
+SELECT bookid, REPLACE(bookname, '야구', '농구') bookname, publisher, price
+FROM Book;
+```
+
+도서제목에 야구가 포함된 도서를 농구로 변경한 도서 목록 
+
+##### LENGTH
+
+글자의 수를 세어주는 함수 (단위가 바이트(byte)가 아닌 문자 단위)
+
+```sql
+SELECT bookname "제목", LENGTH(bookname) "글자수", LENGTHB(bookname) "바이트수"
+FROM Book
+WHERE publisher="굿스포츠";
+```
+
+굿스포츠에서 출판한 도서의 제목과 제목의 글자 수
+
+##### SUBSTR
+
+지정한 길이만큼의 문자열을 반환하는 함수
+
+```sql
+SELECT SUBSTR(name, 1, 1) "성", COUNT(*) "인원"
+FROM Customer
+GROUP BY SUBSTR(name, 1, 1);
+```
+
+고객 중에서 같은 성(姓)을 가진 사람이 몇 명이나 되는지 성별 인원수 구하기
+
+#### 날짜 · 시간 함수
+
+![img](images/4-15.png)
+
+---
+
+![img](images/4-16.png)
+
+---
+
+```sql
+SELECT orderid "주문번호", orderdate "주문일", orderdate+10 "확정"
+FROM Orders;
+```
+
+주문일로부터 10일 후 매출 확정. 각 주문의 확정일자 구하기
+
+##### TO_DATE
+
+문자형으로 저장된 날짜를 날짜형으로 변환하는 함수
+
+##### TO_CHAR
+
+날짜형을 문자형으로 변환하는 함수
+
+```sql
+SELECT orderid "주문번호", TO_CHAR(orderdate, 'yyyy-mm-dd dy') "주문일",
+       custid "고객번호", bookid "도서번호"
+FROM Orders
+WHERE orderdate=TO_DATE('20140707', 'yyyymmdd');
+```
+
+##### SYSDATETIME
+
+오라클의 현재 날짜와 시간을 반환하는 함수
+
+##### SYSTIMESTAMP
+
+현재 날짜, 시간과 함께 초 이하의 시간과 서버의 TIMEZONE까지 출력함
+
+```sql
+SELECT SYSDATE, TO_CHAR(SYSDATE, 'yyyy/mm/dd dy hh24:mi:ss') "SYSDATE_1"
+FROM DUAL;
+```
+
+DBMS 서버에 설정된 현재 시간과 오늘 날짜 확인
+
