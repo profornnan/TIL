@@ -1156,3 +1156,110 @@ FROM DUAL;
 
 DBMS 서버에 설정된 현재 시간과 오늘 날짜 확인
 
+### NULL 값 처리
+
+#### NULL 값이란?
+
+- 아직 지정되지 않은 값
+- NULL 값은 '0', '(빈 문자)', '(공백)' 등과 다른 특별한 값
+- NULL 값은 비교 연산자로 비교가 불가능함
+- NULL 값의 연산을 수행하면 결과 역시 NULL 값으로 반환됨
+
+#### 집계 함수를 사용할 때 주의할 점
+
+- 'NULL + 숫자' 연산의 결과는 NULL
+- 집계 함수 계산 시 NULL이 포함된 행은 집계에서 빠짐
+- 해당되는 행이 하나도 없을 경우 SUM, AVG 함수의 결과는 NULL이 되며, COUNT 함수의 결과는 0
+
+#### NULL 값에 대한 연산과 집계 함수
+
+Mybook
+
+| bookid | price |
+| ------ | ----- |
+| 1      | 10000 |
+| 2      | 20000 |
+| 3      | NULL  |
+
+---
+
+```sql
+SELECT price+100
+FROM Mybook
+WHERE bookid=3;
+```
+
+| PRICE+100 |
+| --------- |
+| (null)    |
+
+---
+
+```sql
+SELECT SUM(price), AVG(price), COUNT(*), COUNT(price)
+FROM Mybook;
+```
+
+| SUM(PRICE) | AVG(PRICE) | COUNT(*) | COUNT(PRICE) |
+| ---------- | ---------- | -------- | ------------ |
+| 30000      | 15000      | 3        | 2            |
+
+---
+
+```sql
+SELECT SUM(price), AVG(price), COUNT(*)
+FROM Mybook
+WHERE bookid >= 4;
+```
+
+| SUM(PRICE) | AVG(PRICE) | COUNT(*) |
+| ---------- | ---------- | -------- |
+| (null)     | (null)     | 0        |
+
+#### NULL 값을 확인하는 방법 - IS NULL, IS NOT NULL
+
+- NULL 값을 찾을 때는 '=' 연산자가 아닌 'IS NULL'을 사용
+- NULL이 아닌 값을 찾을 때는 '<>' 연산자가 아닌 'IS NOT NULL'을 사용함
+
+---
+
+```sql
+SELECT *
+FROM Mybook
+WHERE price IS NULL;
+```
+
+| BOOKID | PRICE  |
+| ------ | ------ |
+| 3      | (null) |
+
+---
+
+```sql
+SELECT *
+FROM Mybook
+WHERE price = '';
+```
+
+| BOOKID | PRICE |
+| ------ | ----- |
+|        |       |
+
+#### NVL
+
+- NULL 값을 다른 값으로 대치하여 연산하거나 다른 값으로 출력
+
+```
+NVL(속성, 값)  /* 속성 값이 NULL이면 '값'으로 대치한다 */
+```
+
+---
+
+```sql
+SELECT name "이름", NVL(phone, '연락처없음') "전화번호"
+FROM Customer;
+```
+
+이름, 전화번호가 포함된 고객목록 (단, 전화번호가 없는 고객은 '연락처없음'으로 표시)
+
+
