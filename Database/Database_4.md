@@ -1293,3 +1293,102 @@ WHERE ROWNUM <= 2;
 
 ![img](images/4-18.png)
 
+### 스칼라 부속질의 - SELECT 부속질의
+
+#### 스칼라 부속질의(scalar subquery)란?
+
+- SELECT 절에서 사용되는 부속질의로, 부속질의의 결과값을 단일 행, 단일 열의 스칼라 값으로 반환함
+- 스칼라 부속질의는 원칙적으로 스칼라 값이 들어갈 수 있는 모든 곳에 사용 가능하며, 일반적으로 SELECT 문과 UPDATE SET 절에 사용됨
+- 주질의와 부속질의와의 관계는 상관/비상관 모두 가능함
+
+---
+
+![img](images/4-19.png)
+
+---
+
+```sql
+SELECT (SELECT name
+        FROM Customer cs
+        WHERE cs.custid=od.custid) "name", SUM(saleprice) "total"
+FROM Orders od
+GROUP BY od.custid;
+```
+
+서점의 고객별 판매액(결과는 고객이름과 고객별 판매액을 출력)
+
+---
+
+```sql
+UPDATE Orders
+SET bookname = (SELECT bookname
+                FROM Book
+                WHERE Book.bookid=Orders.bookid);
+```
+
+Orders 테이블에 각 주문에 맞는 도서 이름 입력
+
+### 인라인 뷰 - FROM 부속질의
+
+#### 인라인 뷰(inline view)
+
+- FROM 절에서 사용되는 부속질의
+- 테이블 이름 대신 인라인 뷰 부속질의를 사용하면 보통의 테이블과 같은 형태로 사용 가능
+- 부속질의 결과 반환되는 데이터는 다중 행, 다중 열이어도 상관없음
+- 다만 가상의 테이블인 뷰 형태로 제공되어 상관 부속질의로 사용될 수는 없음
+
+---
+
+```sql
+SELECT cs.name, SUM(od.saleprice) "total"
+FROM (SELECT custid, name
+      FROM Customer
+      WHERE custid <= 2) cs,
+      Orders od
+WHERE cs.custid=od.custid
+GROUP BY cs.name;
+```
+
+고객번호가 2 이하인 고객의 판매액(결과는 고객이름과 고객별 판매액 출력)
+
+---
+
+![img](images/4-20.png)
+
+### 중첩질의 - WHERE 부속질의
+
+- 중첩질의(nested subquery)는 WHERE 절에서 사용되는 부속질의
+- WHERE 절은 보통 데이터를 선택하는 조건 혹은 술어(predicate)와 같이 사용됨
+- 그래서 중첩질의를 술어 부속질의(predicate subquery)라고도 함
+
+---
+
+![img](images/4-21.png)
+
+#### 비교 연산자
+
+- 부속질의가 반드시 단일 행, 단일 열을 반환해야 하며, 아닐 경우 질의를 처리할 수 없음
+
+---
+
+```sql
+SELECT orderid, saleprice
+FROM Orders
+WHERE saleprice <= (SELECT AVG(saleprice)
+                    FROM Orders);
+```
+
+평균 주문금액 이하의 주문에 대해서 주문번호와 금액 보이기
+
+---
+
+```sql
+SELECT orderid, custid, saleprice
+FROM Orders od
+WHERE saleprice > (SELECT AVG(saleprice)
+                   FROM Orders so
+                   WHERE od.custid=so.custid);
+```
+
+각 고객의 평균 주문금액보다 큰 금액의 주문 내역에 대해서 주문번호, 고객번호, 금액 보이기
+
