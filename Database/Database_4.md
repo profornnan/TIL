@@ -1392,3 +1392,313 @@ WHERE saleprice > (SELECT AVG(saleprice)
 
 각 고객의 평균 주문금액보다 큰 금액의 주문 내역에 대해서 주문번호, 고객번호, 금액 보이기
 
+#### IN, NOT IN
+
+- IN 연산자는 주질의 속성 값이 부속질의에서 제공한 결과 집합에 있는지 확인(check)하는 역할을 함.
+- IN 연산자는 부속질의의 결과 다중 행을 가질 수 있음.
+- 주질의는 WHERE 절에 사용되는 속성 값을 부속질의의 결과 집합과 비교해 하나라도 있으면 참이 됨.
+- NOT IN은 이와 반대로 값이 존재하지 않으면 참이 됨
+
+---
+
+```sql
+SELECT SUM(saleprice) "total"
+FROM Orders
+WHERE custid IN (SELECT custid
+                 FROM Customer
+                 WHERE address LIKE '%대한민국%');
+```
+
+대한민국에 거주하는 고객에게 판매한 도서의 총 판매액
+
+#### ALL, SOME(ANY)
+
+- ALL은 모두, SOME(ANY)은 어떠한(최소한 하나라도)이라는 의미를 가짐
+- 구문 구조
+  - scalar_expression {비교연산자(= | <> | != | > | >= | !> | < | <= | !<)} {ALL | SOME | ANY} (부속질의)
+
+---
+
+```sql
+SELECT orderid, saleprice
+FROM Orders
+WHERE saleprice > ALL (SELECT saleprice
+                       FROM Orders
+                       WHERE custid='3');
+```
+
+3번 고객이 주문한 도서의 최고 금액보다 더 비싼 도서를 구입한 주문의 주문번호와 금액
+
+#### EXISTS, NOT EXISTS
+
+- 데이터의 존재 유무를 확인하는 연산자
+- 주질의에서 부속질의로 제공된 속성의 값을 가지고 부속질의에 조건을 만족하여 값이 존재하면 참이 되고, 주질의는 해당 행의 데이터를 출력함
+- NOT EXISTS의 경우 이와 반대로 동작함
+- 구문 구조
+  - WHERE [NOT] EXISTS (부속질의)
+
+---
+
+```sql
+SELECT SUM(saleprice) "total"
+FROM Orders od
+WHERE EXISTS (SELECT *
+              FROM Customer cs
+              WHERE address LIKE '%대한민국%' AND cs.custid=od.custid);
+```
+
+대한민국에 거주하는 고객에게 판매한 도서의 총 판매액 (EXISTS 연산자 사용)
+
+## 뷰
+
+- 뷰(view)는 하나 이상의 테이블을 합하여 만든 가상의 테이블
+- 장점
+  - 편리성 : 미리 정의된 뷰를 일반 테이블처럼 사용할 수 있기 때문에 편리함. 또 사용자가 필요한 정보만 요구에 맞게 가공하여 뷰로 만들어 쓸 수 있음
+  - 재사용성 : 자주 사용되는 질의를 뷰로 미리 정의해 놓을 수 있음
+  - 보안성 : 각 사용자별로 필요한 데이터만 선별하여 보여줄 수 있음. 중요한 질의의 경우 질의 내용을 암호화할 수 있음
+
+![img](images/4-22.png)
+
+### 뷰의 생성
+
+#### 기본 문법
+
+```sql
+CREATE VIEW 뷰이름 [(열이름 [ ,...n ])]
+AS SELECT 문
+```
+
+---
+
+```sql
+SELECT *
+FROM Book
+WHERE bookname LIKE '%축구%';
+```
+
+Book 테이블에서 '축구'라는 문구가 포함된 자료만 보여주는 뷰
+
+---
+
+```sql
+CREATE VIEW vw_Book
+AS SELECT *
+FROM Book
+WHERE bookname LIKE '%축구%';
+```
+
+위 SELECT 문을 이용해 작성한 뷰 정의문
+
+---
+
+```sql
+CREATE VIEW vw_Customer
+AS SELECT *
+FROM Customer
+WHERE address LIKE '%대한민국%';
+```
+
+주소에 '대한민국'을 포함하는 고객들로 구성된 뷰 생성 및 조회. (단, 뷰의 이름은 vw_Customer로 한다.)
+
+```sql
+SELECT *
+FROM vw_Customer;
+```
+
+결과 확인
+
+---
+
+```sql
+CREATE VIEW vw_Orders (orderid, custid, name, bookid, bookname, saleprice, orderdate)
+AS SELECT od.orderid, od.custid, cs.name,
+          od.bookid, bk.bookname, od.saleprice, od.orderdate
+FROM Orders od, Customer cs, Book bk
+WHERE od.custid=cs.custid AND od.bookid=bk.bookid;
+```
+
+Orders 테이블에 고객이름과 도서이름을 바로 확인할 수 있는 뷰를 생성한 후, '김연아' 고객이 구입한 도서의 주문번호, 도서이름, 주문액 보이기
+
+```sql
+SELECT orderid, bookname, saleprice
+FROM vw_Orders
+WHERE name='김연아';
+```
+
+결과 확인
+
+### 뷰의 수정
+
+#### 기본 문법
+
+```sqlite
+CREATE OR REPLACE VIEW 뷰이름 [(열이름 [ ,...n ])]
+AS SELECT 문
+```
+
+---
+
+```sql
+CREATE OR REPLACE VIEW vw_Customer (custid, name, address)
+AS SELECT custid, name, address
+FROM Customer
+WHERE address LIKE '%영국%';
+```
+
+앞에서 생성한 뷰 vw_Customer는 주소가 대한민국인 고객을 보여준다.
+
+영국을 주소로 가진 고객으로 변경, phone 속성 제외
+
+```sql
+SELECT *
+FROM vw_Customer;
+```
+
+### 뷰의 삭제
+
+#### 기본 문법
+
+```sql
+DROP VIEW 뷰이름 [ ,...n ];
+```
+
+---
+
+```sql
+DROP VIEW vw_Customer;
+```
+
+vw_Customer 삭제
+
+```sql
+SELECT *
+FROM vw_Customer;
+```
+
+## 인덱스
+
+### 데이터베이스의 물리적 저장
+
+![img](images/4-23.png)
+
+#### 실제 데이터가 저장되는 곳은 보조기억장치
+
+- 하드디스크, SSD, USB 메모리 등
+
+#### 가장 많이 사용되는 장치는 하드디스크
+
+- 하드디스크는 원형의 플레이트(plate)로 구성되어 있고, 이 플레이트는 논리적으로 트랙으로 나뉘며 트랙은 다시 몇 개의 섹터로 나뉨
+- 원형의 플레이트는 초당 빠른 속도로 회전하고, 회전하는 플레이트를 하드디스크의 액세스 암(arm)과 헤더(header)가 접근하여 원하는 섹터에서 데이터를 가져옴
+- 하드디스크에 저장된 데이터를 읽어 오는 데 걸리는 시간은 모터(motor)에 의해서 분당 회전하는 속도(RPM, Revolutions Per Minute), 데이터를 읽을 때 액세스 암이 이동하는 시간(latency time), 주기억장치로 읽어오는 시간(transfer time)에 영향을 받음
+
+#### 액세스 시간(access time)
+
+- 액세스 시간 = 탐색시간(seek time, 액세스 헤드를 트랙에 이동시키는 시간) + 회전지연시간(rotational latency time, 섹터가 액세스 헤드에 접근하는 시간) + 데이터 전송시간(data transfer time, 데이터를 주기억장치로 읽어오는 시간)
+
+---
+
+![img](images/4-24.png)
+
+---
+
+![img](images/4-25.png)
+
+### 인덱스와 B-tree
+
+#### 인덱스(index, 색인)
+
+- 도서의 색인이나 사전과 같이 데이터를 쉽고 빠르게 찾을 수 있도록 만든 데이터 구조
+
+![img](images/4-26.png)
+
+---
+
+![img](images/4-27.png)
+
+#### 인덱스의 특징
+
+- 인덱스는 테이블에서 한 개 이상의 속성을 이용하여 생성함
+- 빠른 검색과 함께 효율적인 레코드 접근이 가능함
+- 순서대로 정렬된 속성과 데이터의 위치만 보유하므로 테이블보다 작은 공간을 차지함
+- 저장된 값들은 테이블의 부분집합이 됨
+- 일반적으로 B-tree 형태의 구조를 가짐
+- 데이터의 수정, 삭제 등의 변경이 발생하면 인덱스의 재구성이 필요함
+
+### 오라클 인덱스
+
+#### 오라클 B-tree 인덱스
+
+- 오라클 인덱스는 B-tree를 변형하여 사용하며 명칭은 B-tree로 동일한 이름으로 부름
+
+![img](images/4-28.png)
+
+#### 오라클 인덱스의 종류
+
+![img](images/4-29.png)
+
+### 인덱스의 생성
+
+#### 인덱스 생성 시 고려사항
+
+- 인덱스는 WHERE 절에 자주 사용되는 속성이어야 함
+- 인덱스는 조인에 자주 사용되는 속성이어야 함
+- 단일 테이블에 인덱스가 많으면 속도가 느려질 수 있음(테이블 당 4~5개 정도 권장)
+- 속성이 가공되는 경우 사용하지 않음
+- 속성의 선택도가 낮을 때 유리함(속성의 모든 값이 다른 경우)
+
+#### 인덱스의 생성 문법
+
+```sql
+CREATE [REVERSE] | [UNIQUE] INDEX 인덱스이름
+ON 테이블이름 (컬럼 [ASC | DESC] [{, 컬럼 [ASC | DESC]} ...]);
+```
+
+---
+
+```sql
+CREATE INDEX ix_Book ON Book (bookname);
+```
+
+Book 테이블의 bookname 열을 대상으로 비 클러스터 인덱스 ix_Book 생성
+
+---
+
+```sql
+CREATE INDEX cix_Customer ON Book (publisher, price);
+```
+
+Customer 테이블의 name 열을 대상으로 클러스터 인덱스 cix_Customer 생성
+
+### 인덱스의 재구성과 삭제
+
+인덱스의 재구성은 ALTER INDEX 명령을 사용함
+
+#### 재구성 문법
+
+```sql
+ALTER [REVERSE] [UNIQUE] INDEX 인덱스이름
+[ON {ONLY} 테이블이름 {컬럼이름 [{, 컬럼이름 } ...]}] REBUILD;
+```
+
+---
+
+```sql
+ALTER INDEX ix_Book REBUILD;
+```
+
+인덱스 ix_Book 재생성
+
+#### 삭제 문법
+
+```sql
+DROP INDEX 인덱스이름
+```
+
+---
+
+```sql
+DROP INDEX ix_Book;
+```
+
+인덱스 ix_Book 삭제
+
